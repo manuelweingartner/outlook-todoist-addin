@@ -2,22 +2,22 @@
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" xmlns:mailappor="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" xsi:type="MailApp">
   <Id>74742003-707d-4555-ae88-30e2fef7db9c</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>Contoso</ProviderName>
-  <DefaultLocale>en-US</DefaultLocale>
+  <ProviderName>Manuel Weingartner</ProviderName>
+  <DefaultLocale>de-DE</DefaultLocale>
   <DisplayName DefaultValue="Mail an Todoist"/>
-  <Description DefaultValue="A template to get started."/>
+  <Description DefaultValue="Oeffnet eine Seitenleiste zum Anhaengen der aktuellen Mail als .eml-Datei an einen Todoist-Task."/>
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-128.png"/>
-  <SupportUrl DefaultValue="https://www.contoso.com/help"/>
+  <SupportUrl DefaultValue="https://github.com/manuelweingartner/outlook-todoist-addin"/>
   <AppDomains>
-    <AppDomain>https://www.contoso.com</AppDomain>
+    <AppDomain>https://api.todoist.com</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Mailbox"/>
   </Hosts>
   <Requirements>
-    <Sets>
-      <Set Name="Mailbox" MinVersion="1.1"/>
+    <Sets DefaultMinVersion="1.8">
+      <Set Name="Mailbox" MinVersion="1.8"/>
     </Sets>
   </Requirements>
   <FormSettings>
@@ -28,15 +28,15 @@
       </DesktopSettings>
     </Form>
   </FormSettings>
-  <Permissions>ReadWriteItem</Permissions>
+  <Permissions>ReadItem</Permissions>
   <Rule xsi:type="RuleCollection" Mode="Or">
     <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read"/>
   </Rule>
   <DisableEntityHighlighting>false</DisableEntityHighlighting>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides" xsi:type="VersionOverridesV1_0">
     <Requirements>
-      <bt:Sets DefaultMinVersion="1.3">
-        <bt:Set Name="Mailbox"/>
+      <bt:Sets DefaultMinVersion="1.8">
+        <bt:Set Name="Mailbox" MinVersion="1.8"/>
       </bt:Sets>
     </Requirements>
     <Hosts>
@@ -94,13 +94,13 @@
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GroupLabel" DefaultValue="Contoso Add-in"/>
-        <bt:String id="TaskpaneButton.Label" DefaultValue="Show Task Pane"/>
-        <bt:String id="ActionButton.Label" DefaultValue="Perform an action"/>
+        <bt:String id="GroupLabel" DefaultValue="Todoist"/>
+        <bt:String id="TaskpaneButton.Label" DefaultValue="An Todoist-Task"/>
+        <bt:String id="ActionButton.Label" DefaultValue="An Todoist-Task"/>
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Opens a pane displaying all available properties."/>
-        <bt:String id="ActionButton.Tooltip" DefaultValue="Perform an action when clicked."/>
+        <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Mail als .eml-Datei an einen Todoist-Task anhaengen."/>
+        <bt:String id="ActionButton.Tooltip" DefaultValue="Mail als .eml-Datei an einen Todoist-Task anhaengen."/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
