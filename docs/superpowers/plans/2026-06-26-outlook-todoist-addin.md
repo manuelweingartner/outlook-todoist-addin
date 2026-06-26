@@ -10,11 +10,11 @@
 
 ## Global Constraints
 
-- **Mailbox Requirement Set 1.8** ist Minimum (für `getAttachmentContentAsync`) — im Manifest setzen.
+- **Mailbox Requirement Set 1.8** ist Minimum (für `getAttachmentContentAsync`) - im Manifest setzen.
 - **Kein Microsoft Graph, kein `Mail.Read`-Consent, kein Azure-App.** Nur Office.js `ReadItem`.
 - **Kein eigenes Backend/Proxy.** Todoist direkt aus dem Browser (Bearer-Token, credentials-Mode `omit`).
 - **Keine stillen `try/catch`:** jeder Fehler wird geloggt (`console.error(e)`) UND dem Nutzer im Pane sichtbar gemeldet.
-- **Keine Em-/En-Dashes** (`—`/`–`) in Code, Kommentaren, UI-Texten. Nur `.`/`,`/`:`/`-`.
+- **Keine Em-/En-Dashes** in Code, Kommentaren, UI-Texten. Nur `.`/`,`/`:`/`-`.
 - **Git-Identität:** Manuel Weingartner <manuel.weingartner@gmx.ch>. Niemals Co-Authored-By Claude.
 - Todoist-Upload-Limit: **25 MB** pro Datei.
 - Todoist-Endpunkte: REST `https://api.todoist.com/rest/v2`, Sync `https://api.todoist.com/sync/v9`.
