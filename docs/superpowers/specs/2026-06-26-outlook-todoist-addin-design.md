@@ -44,7 +44,7 @@ Drei Aktionen, kein Titel-Tippen, kein Drag, kein Datei-Umweg, alles in Outlook.
 
 Statisches Web-Add-in (Office.js), keine eigene Server-Logik. Die Mail wird **rein über
 Office.js** ausgelesen (kein Microsoft Graph, kein Mail.Read-Consent); nur die Todoist-API
-wird extern angesprochen — direkt aus dem Task-Pane-Browser-Kontext.
+wird extern angesprochen - direkt aus dem Task-Pane-Browser-Kontext.
 
 ```
 [Neues Outlook] --Office.js--> [Task-Pane (GitHub Pages, HTTPS)]
@@ -62,7 +62,7 @@ wird extern angesprochen — direkt aus dem Task-Pane-Browser-Kontext.
 | Komponente | Zweck | Abhängigkeiten |
 |---|---|---|
 | **Task-Pane Web-App** | UI: Task-Liste, Suche, Anhängen-Logik | Office.js |
-| **Manifest** (XML/Unified) | Definiert Button + Pane; von IT ausgerollt | — |
+| **Manifest** (XML/Unified) | Definiert Button + Pane; von IT ausgerollt | - |
 | **EML-Builder-Modul** | Body + Anhänge → .eml (MIME) zusammenbauen | Office.js (ReadItem) |
 | **Todoist-Modul** | Upload + Kommentar erstellen | Todoist-API-Token |
 | **Settings-Modul** | Token speichern/laden | Office.roamingSettings |
@@ -75,7 +75,7 @@ Jedes Modul ist isoliert testbar (klare Funktionsgrenzen, gemockte HTTP-Aufrufe)
 
 - Header/Metadaten direkt aus `Office.context.mailbox.item`: `subject`, `from`, `to`, `cc`,
   `dateTimeCreated`, `normalizedSubject`.
-- Body via `item.body.getAsync(Office.CoercionType.Html)` (HTML) — optional zusätzlich
+- Body via `item.body.getAsync(Office.CoercionType.Html)` (HTML) - optional zusätzlich
   Plaintext für einen `multipart/alternative`-Teil.
 - Datei-Anhänge: `item.attachments` durchgehen, je Anhang
   `item.getAttachmentContentAsync(id)` → Base64-Inhalt (`AttachmentContentFormat.Base64`).
@@ -83,7 +83,7 @@ Jedes Modul ist isoliert testbar (klare Funktionsgrenzen, gemockte HTTP-Aufrufe)
   (`multipart/mixed`: Header + HTML-Body-Teil + je Anhang ein Base64-Teil) → `.eml`,
   die in Outlook geöffnet werden kann.
 - Benötigt **nur** die Standard-`ReadItem`-Berechtigung des Add-ins (im Manifest, wird
-  beim Installieren erteilt) — **kein Admin-Consent, kein Azure-App, kein Graph**.
+  beim Installieren erteilt) - **kein Admin-Consent, kein Azure-App, kein Graph**.
 - Bekannte Grenzen (akzeptiert): Original-Empfangs-Header (`Received:` etc.) fehlen;
   Inline-/eingebettete Bilder evtl. nicht 1:1; `item.attachments` listet keine
   Inline-only-Cloud-Attachments. Für Archiv/Referenz am Task ausreichend.
@@ -118,7 +118,7 @@ Jedes Modul ist isoliert testbar (klare Funktionsgrenzen, gemockte HTTP-Aufrufe)
   Nutzer melden welche fehlen (statt still verwerfen).
 - .eml > 25 MB (Todoist-Upload-Limit) → Hinweis + Abbruch.
 - Doppel-Anhängen verhindern → Button während Upload sperren, Erfolg/Fehler eindeutig melden.
-- **Keine stillen `try/catch`** — jeder Fehler wird sichtbar geloggt und dem Nutzer gemeldet
+- **Keine stillen `try/catch`**: jeder Fehler wird sichtbar geloggt und dem Nutzer gemeldet
   (gemäss Defensive-Catch-Antipattern-Regel).
 
 ## Tests
@@ -134,17 +134,17 @@ Jedes Modul ist isoliert testbar (klare Funktionsgrenzen, gemockte HTTP-Aufrufe)
 Statische Dateien auf **GitHub Pages** (Repo: privat oder öffentlich, Manifest-URL stabil).
 
 **IT-Anfrage an CMI (konkret):**
-1. Custom-Add-in zentral bereitstellen (Manifest-URL), wie „CMI Mail" — **das ist alles.**
+1. Custom-Add-in zentral bereitstellen (Manifest-URL), wie „CMI Mail" - **das ist alles.**
    Kein Mailbox-Lese-Consent, keine Azure-App, kein Security-Review für Graph-Scopes.
 
 ## Offene Punkte / Risiken
 
 - **Showstopper reduziert:** IT muss nur das Add-in deployen (Präzedenz „CMI Mail"
   vorhanden) → deutlich wahrscheinlichere/schnellere Freigabe.
-- Manifest-Format: Unified (JSON) vs. klassisch (XML) — im Plan zu entscheiden; klassisches
+- Manifest-Format: Unified (JSON) vs. klassisch (XML) - im Plan zu entscheiden; klassisches
   XML-Manifest ist für Outlook-Add-in-Deployment am breitesten unterstützt.
 - EML-Fidelity der Rekonstruktion in der Praxis prüfen; falls unzureichend, ist Graph
-  (mit Mail.Read-Consent) ein späteres optionales Upgrade — nicht jetzt.
+  (mit Mail.Read-Consent) ein späteres optionales Upgrade - nicht jetzt.
 
 ## Nicht im Scope (YAGNI)
 
