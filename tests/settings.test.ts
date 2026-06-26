@@ -20,4 +20,15 @@ describe("settings", () => {
     await setToken("abc123");
     expect(getToken()).toBe("abc123");
   });
+
+  test("setToken lehnt ab wenn saveAsync fehlschlaegt", async () => {
+    (global as any).Office.context.roamingSettings.saveAsync = (cb: (r: any) => void) =>
+      cb({ status: "failed", error: new Error("save error") });
+    await expect(setToken("x")).rejects.toBeInstanceOf(Error);
+  });
+
+  test("getToken liefert null nach setToken('')", async () => {
+    await setToken("");
+    expect(getToken()).toBeNull();
+  });
 });
