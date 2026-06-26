@@ -16,7 +16,7 @@ export function utf8ToBase64(str: string): string {
 }
 
 export function encodeHeader(value: string): string {
-  if (/^[\x00-\x7F]*$/.test(value)) return value;
+  if (/^[\x20-\x7E]*$/.test(value)) return value;
   return `=?UTF-8?B?${utf8ToBase64(value)}?=`;
 }
 

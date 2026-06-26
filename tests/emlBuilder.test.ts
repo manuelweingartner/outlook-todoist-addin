@@ -19,6 +19,11 @@ describe("encodeHeader", () => {
     expect(out.startsWith("=?UTF-8?B?")).toBe(true);
     expect(out.endsWith("?=")).toBe(true);
   });
+  test("Werte mit Steuerzeichen werden kodiert (kein Header-Injection)", () => {
+    const out = encodeHeader("a\r\nInjected: x");
+    expect(out.startsWith("=?UTF-8?B?")).toBe(true);
+    expect(out.endsWith("?=")).toBe(true);
+  });
 });
 
 describe("buildEml ohne Anhang", () => {
@@ -32,6 +37,15 @@ describe("buildEml ohne Anhang", () => {
   test("Body ist base64-kodiert", () => {
     expect(eml).toContain("Content-Transfer-Encoding: base64");
     expect(eml).toContain(utf8ToBase64("<p>Text</p>"));
+  });
+  test("single-part: Header-Block durch Leerzeile vom Body getrennt, Body dekodiert zu htmlBody", () => {
+    const idx = eml.indexOf("\r\n\r\n");
+    expect(idx).toBeGreaterThan(0);
+    const headerBlock = eml.slice(0, idx);
+    const body = eml.slice(idx + 4).trim();
+    expect(headerBlock).toContain("Content-Type: text/html; charset=UTF-8");
+    expect(headerBlock).toContain("MIME-Version: 1.0");
+    expect(Buffer.from(body, "base64").toString("utf8")).toBe("<p>Text</p>");
   });
 });
 
