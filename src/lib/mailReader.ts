@@ -34,6 +34,7 @@ export async function readCurrentMail(): Promise<MailData> {
     try {
       const base64 = await getAttachmentBase64(item, a.id);
       if (base64) attachments.push({ name: a.name, contentType: a.contentType, base64 });
+      else console.warn("Anhang-Format nicht Base64, uebersprungen:", a.name);
     } catch (e) {
       console.error("Anhang nicht lesbar:", a.name, e);
     }
