@@ -16,3 +16,8 @@ test("emlBlobFor erzeugt .eml-Dateinamen aus bereinigtem Betreff", () => {
   expect(fileName).toBe("Re_ Angebot _ Offerte.eml");
   expect(blob.type).toBe("message/rfc822");
 });
+
+test("emlBlobFor faellt auf Mail.eml zurueck bei leerem Betreff", () => {
+  const { fileName } = emlBlobFor({ ...mail, subject: "" });
+  expect(fileName).toBe("Mail.eml");
+});
