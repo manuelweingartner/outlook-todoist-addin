@@ -1,7 +1,7 @@
 jest.mock("../src/lib/mailReader");
 jest.mock("../src/lib/todoist");
 
-import { attachCurrentMailToTask, MAX_BYTES } from "../src/lib/attachToTask";
+import { attachCurrentMailToTask, attachPreparedToTask, prepareCurrentMail, MAX_BYTES } from "../src/lib/attachToTask";
 import { readCurrentMail } from "../src/lib/mailReader";
 import { uploadFile, addComment } from "../src/lib/todoist";
 import { MailData } from "../src/lib/emlBuilder";
@@ -19,27 +19,27 @@ const baseMail: MailData = {
 describe("attachCurrentMailToTask", () => {
   beforeEach(() => jest.clearAllMocks());
 
-  test("happy path: liest Mail, laedt hoch, kommentiert in Reihenfolge", async () => {
+  test("happy path: Kommentartext = Betreff (Datum), gibt id zurueck", async () => {
     (readCurrentMail as jest.Mock).mockResolvedValue(baseMail);
-    (uploadFile as jest.Mock).mockResolvedValue({
-      file_url: "u",
-      file_name: "S.eml",
-      file_type: "message/rfc822",
-    });
-    (addComment as jest.Mock).mockResolvedValue(undefined);
+    (uploadFile as jest.Mock).mockResolvedValue({ file_url: "u", file_name: "S.eml", file_type: "message/rfc822" });
+    (addComment as jest.Mock).mockResolvedValue("c1");
 
-    await attachCurrentMailToTask("tok", "task1");
+    const id = await attachCurrentMailToTask("tok", "task1");
 
-    expect(readCurrentMail).toHaveBeenCalled();
-    expect(uploadFile).toHaveBeenCalledTimes(1);
-    const [tok, , fileName] = (uploadFile as jest.Mock).mock.calls[0];
+    expect(id).toBe("c1");
+    const [tok, taskId, file, content] = (addComment as jest.Mock).mock.calls[0];
     expect(tok).toBe("tok");
-    expect(fileName).toBe("S.eml");
-    expect(addComment).toHaveBeenCalledWith("tok", "task1", {
-      file_url: "u",
-      file_name: "S.eml",
-      file_type: "message/rfc822",
-    });
+    expect(taskId).toBe("task1");
+    expect(file.file_url).toBe("u");
+    expect(content).toBe("S (01.01.2026)");
+  });
+
+  test("prepareCurrentMail liefert sizeBytes + commentText", async () => {
+    (readCurrentMail as jest.Mock).mockResolvedValue(baseMail);
+    const p = await prepareCurrentMail();
+    expect(p.subject).toBe("S");
+    expect(p.commentText).toBe("S (01.01.2026)");
+    expect(p.sizeBytes).toBeGreaterThan(0);
   });
 
   test("wirft bei >25 MB und laedt NICHT hoch", async () => {

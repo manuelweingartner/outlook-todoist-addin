@@ -4,6 +4,14 @@ import { uploadFile, addComment } from "./todoist";
 
 export const MAX_BYTES = 25 * 1024 * 1024;
 
+export interface PreparedMail {
+  blob: Blob;
+  fileName: string;
+  sizeBytes: number;
+  subject: string;
+  commentText: string;
+}
+
 function sanitizeFileName(subject: string): string {
   const cleaned = (subject || "Mail").replace(/[\\/:*?"<>|]/g, "_").trim();
   return `${cleaned.slice(0, 120) || "Mail"}.eml`;
@@ -15,12 +23,31 @@ export function emlBlobFor(mail: MailData): { blob: Blob; fileName: string } {
   return { blob, fileName: sanitizeFileName(mail.subject) };
 }
 
-export async function attachCurrentMailToTask(token: string, taskId: string): Promise<void> {
+export function formatMailDate(utc: string): string {
+  const d = new Date(utc);
+  if (isNaN(d.getTime())) return "";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${dd}.${mm}.${d.getFullYear()}`;
+}
+
+export async function prepareCurrentMail(): Promise<PreparedMail> {
   const mail = await readCurrentMail();
   const { blob, fileName } = emlBlobFor(mail);
-  if (blob.size > MAX_BYTES) {
-    throw new Error(`Mail ist ${(blob.size / 1024 / 1024).toFixed(1)} MB gross, Todoist erlaubt max 25 MB.`);
+  const datePart = formatMailDate(mail.date);
+  const commentText = datePart ? `${mail.subject} (${datePart})` : mail.subject;
+  return { blob, fileName, sizeBytes: blob.size, subject: mail.subject, commentText };
+}
+
+export async function attachPreparedToTask(token: string, taskId: string, prepared: PreparedMail): Promise<string> {
+  if (prepared.sizeBytes > MAX_BYTES) {
+    throw new Error(`Mail ist ${(prepared.sizeBytes / 1024 / 1024).toFixed(1)} MB gross, Todoist erlaubt max 25 MB.`);
   }
-  const uploaded = await uploadFile(token, blob, fileName);
-  await addComment(token, taskId, uploaded);
+  const uploaded = await uploadFile(token, prepared.blob, prepared.fileName);
+  return addComment(token, taskId, uploaded, prepared.commentText);
+}
+
+export async function attachCurrentMailToTask(token: string, taskId: string): Promise<string> {
+  const prepared = await prepareCurrentMail();
+  return attachPreparedToTask(token, taskId, prepared);
 }
