@@ -35,6 +35,7 @@ function renderSizeWarning(): void {
   } else {
     warn.hidden = true;
   }
+  ($("new-task") as HTMLButtonElement).disabled = tooLarge();
 }
 
 function tooLarge(): boolean {
