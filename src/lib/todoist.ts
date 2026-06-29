@@ -3,7 +3,14 @@
 // "Failed to fetch"). Alles laeuft jetzt ueber api.todoist.com/api/v1.
 const API = "https://api.todoist.com/api/v1";
 
-export interface TodoistTask { id: string; content: string; project_id: string; }
+export interface TodoistTask {
+  id: string;
+  content: string;
+  project_id: string;
+  priority?: number;                                  // 1 bis 4, 4 = hoechste (P1)
+  due?: { date: string; datetime?: string } | null;
+}
+export interface TodoistProject { id: string; name: string; }
 export interface UploadedFile { file_url: string; file_name: string; file_type: string; }
 
 // v1-Listen sind paginiert: { results: [...], next_cursor: ... }.
@@ -57,7 +64,7 @@ export async function uploadFile(token: string, file: Blob, fileName: string): P
   return (await ensureOk(res)).json();
 }
 
-export async function addComment(token: string, taskId: string, file: UploadedFile, content = ""): Promise<void> {
+export async function addComment(token: string, taskId: string, file: UploadedFile, content = ""): Promise<string> {
   const res = await fetch(`${API}/comments`, {
     method: "POST",
     headers: { ...auth(token), "Content-Type": "application/json" },
@@ -67,5 +74,25 @@ export async function addComment(token: string, taskId: string, file: UploadedFi
       attachment: { resource_type: "file", file_url: file.file_url, file_name: file.file_name, file_type: file.file_type },
     }),
   });
+  const data = await (await ensureOk(res)).json();
+  return (data && data.id) as string;
+}
+
+export async function deleteComment(token: string, commentId: string): Promise<void> {
+  const res = await fetch(`${API}/comments/${commentId}`, { method: "DELETE", headers: auth(token) });
   await ensureOk(res);
+}
+
+export async function getProjects(token: string): Promise<TodoistProject[]> {
+  const res = await fetch(`${API}/projects`, { headers: auth(token) });
+  return unwrap<TodoistProject>(await (await ensureOk(res)).json());
+}
+
+export async function createTask(token: string, content: string): Promise<TodoistTask> {
+  const res = await fetch(`${API}/tasks`, {
+    method: "POST",
+    headers: { ...auth(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
+  return (await ensureOk(res)).json();
 }
