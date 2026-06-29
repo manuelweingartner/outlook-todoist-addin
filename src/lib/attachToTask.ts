@@ -26,9 +26,9 @@ export function emlBlobFor(mail: MailData): { blob: Blob; fileName: string } {
 export function formatMailDate(utc: string): string {
   const d = new Date(utc);
   if (isNaN(d.getTime())) return "";
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${dd}.${mm}.${d.getFullYear()}`;
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${dd}.${mm}.${d.getUTCFullYear()}`;
 }
 
 export async function prepareCurrentMail(): Promise<PreparedMail> {
