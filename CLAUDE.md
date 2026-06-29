@@ -19,9 +19,10 @@ anklicken > .eml haengt als Kommentar-Anhang am Task.
   zusammengebaut. **KEIN Microsoft Graph, KEIN Mail.Read-Consent, KEINE Azure-App.**
   Manifest-Permission ist nur `ReadItem`. (Das minimiert die IT-Freigabe; Graph waere
   ein spaeteres optionales Upgrade fuer perfektere .eml-Fidelity.)
-- **Todoist direkt aus dem Browser** mit persoenlichem API-Token (Bearer). CORS erlaubt
-  das (`Access-Control-Allow-Origin: *`), daher kein Proxy. Credentials-Mode bleibt
-  `omit` (keine Cookies).
+- **Todoist direkt aus dem Browser** mit persoenlichem API-Token (Bearer). Die v1-API
+  schickt fuer unsere Origin korrekte CORS-Header (`Access-Control-Allow-Origin` spiegelt
+  `manuelweingartner.github.io`, `Allow-Headers: Authorization,Content-Type`), daher kein
+  Proxy. Credentials-Mode bleibt `omit` (keine Cookies).
 - Token wird in `Office.context.roamingSettings` gespeichert (roamt pro Nutzer).
 
 ## Module
@@ -29,7 +30,7 @@ anklicken > .eml haengt als Kommentar-Anhang am Task.
 - `src/lib/settings.ts` - Token lesen/speichern (roamingSettings).
 - `src/lib/emlBuilder.ts` - `MailData` -> gueltiges MIME (.eml). Reine Logik.
 - `src/lib/mailReader.ts` - Office.js-Item -> `MailData` (nur File-Anhaenge).
-- `src/lib/todoist.ts` - REST v2 + Sync v9: getTasks/searchTasks/uploadFile/addComment.
+- `src/lib/todoist.ts` - **Unified API v1** (`api.todoist.com/api/v1`): getTasks/searchTasks (`/tasks/filter?query=`, paginiert -> `{results}`), uploadFile (`/uploads`), addComment (`/comments`).
 - `src/lib/attachToTask.ts` - Orchestrierung: lesen -> .eml bauen -> 25MB-Check -> upload -> Kommentar.
 - `src/taskpane/taskpane.{html,ts,css}` - UI: Token-Flow, Task-Liste (Heute/Ueberfaellig + Suche), Anhaengen mit Status.
 - `manifest.xml` (Dev, localhost:3000) / `manifest.prod.xml` (Prod, Pages-URL).
@@ -61,9 +62,20 @@ anklicken > .eml haengt als Kommentar-Anhang am Task.
 
 ## Status / Gotchas
 
+- 2026-06-29: **Zentraler Rollout erfolgt** (Hadi/Interne IT, Ticket #140204, fuer Manuel
+  freigeschaltet via M365 Integrierte Apps). Erster echter Aufruf gegen Todoist scheiterte
+  mit `Failed to fetch`.
+- **GOTCHA (Root Cause des Failed-to-fetch): Todoist hat REST v2 + Sync v9 abgeschaltet
+  (HTTP 410 Gone).** Die 410-Antwort traegt KEINE CORS-Header -> der Browser blockt sie
+  und meldet `Failed to fetch` (sieht aus wie Netz/Token-Problem, ist aber tote API-Version).
+  Diagnose-Trick: `curl -i -X OPTIONS .../rest/v2/tasks -H "Origin: ..."` zeigt 410 ohne
+  Access-Control-Header. Fix: Migration auf Unified **API v1** (`/api/v1`, commit-getestet,
+  26 Tests). v1 liefert korrekte CORS-Header.
 - 2026-06-26: Code fertig, getestet, reviewt, live deployt. IT-Mail (docs/IT-EMAIL.md)
-  an die CMI-IT verschickt; **wartet auf zentralen Rollout**. Erster echter E2E-Test
-  erfolgt auf dem CMI-Postfach NACH dem Rollout.
+  an die CMI-IT verschickt.
+- **Deploy-Gotcha:** `npm run deploy` pusht via `gh auth git-credential`. Der AKTIVE
+  gh-Account ist standardmaessig `CMI-Kunden` (kein Zugriff aufs private Repo -> 403).
+  Vor dem Deploy `gh auth switch --user manuelweingartner`, danach zurueck auf `CMI-Kunden`.
 - **CMI-Tenant blockiert User-Sideloading** -> Add-in muss von IT zentral ausgerollt
   werden (Praezedenz: "CMI Mail"). Selbst-Sideload ist NICHT moeglich.
 - M365-Developer-Sandbox wurde verweigert (Programm verschaerft) -> kein Self-Test-Tenant.

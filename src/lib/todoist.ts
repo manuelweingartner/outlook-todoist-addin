@@ -1,8 +1,13 @@
-const REST = "https://api.todoist.com/rest/v2";
-const SYNC = "https://api.todoist.com/sync/v9";
+// Todoist Unified API v1. Die alten Endpoints (REST v2 / Sync v9) wurden von
+// Todoist abgeschaltet (HTTP 410 Gone, ohne CORS-Header -> Browser meldet
+// "Failed to fetch"). Alles laeuft jetzt ueber api.todoist.com/api/v1.
+const API = "https://api.todoist.com/api/v1";
 
 export interface TodoistTask { id: string; content: string; project_id: string; }
 export interface UploadedFile { file_url: string; file_name: string; file_type: string; }
+
+// v1-Listen sind paginiert: { results: [...], next_cursor: ... }.
+interface Paginated<T> { results: T[]; next_cursor?: string | null; }
 
 export class TodoistError extends Error {
   public status: number;
@@ -26,26 +31,34 @@ async function ensureOk(res: Response): Promise<Response> {
   return res;
 }
 
-export async function getTasks(token: string, filter = "(today | overdue)"): Promise<TodoistTask[]> {
-  const res = await fetch(`${REST}/tasks?filter=${encodeURIComponent(filter)}`, { headers: auth(token) });
-  return (await ensureOk(res)).json();
+// Akzeptiert sowohl die paginierte v1-Form als auch (defensiv) ein nacktes Array.
+function unwrap<T>(data: Paginated<T> | T[]): T[] {
+  return Array.isArray(data) ? data : data.results ?? [];
+}
+
+async function tasksByQuery(token: string, query: string): Promise<TodoistTask[]> {
+  const res = await fetch(`${API}/tasks/filter?query=${encodeURIComponent(query)}`, { headers: auth(token) });
+  return unwrap<TodoistTask>(await (await ensureOk(res)).json());
+}
+
+export async function getTasks(token: string, query = "(today | overdue)"): Promise<TodoistTask[]> {
+  return tasksByQuery(token, query);
 }
 
 export async function searchTasks(token: string, query: string): Promise<TodoistTask[]> {
-  const res = await fetch(`${REST}/tasks?filter=${encodeURIComponent("search: " + query)}`, { headers: auth(token) });
-  return (await ensureOk(res)).json();
+  return tasksByQuery(token, `search: ${query}`);
 }
 
 export async function uploadFile(token: string, file: Blob, fileName: string): Promise<UploadedFile> {
   const form = new FormData();
   form.append("file_name", fileName);
   form.append("file", file, fileName);
-  const res = await fetch(`${SYNC}/uploads/add`, { method: "POST", headers: auth(token), body: form });
+  const res = await fetch(`${API}/uploads`, { method: "POST", headers: auth(token), body: form });
   return (await ensureOk(res)).json();
 }
 
 export async function addComment(token: string, taskId: string, file: UploadedFile, content = ""): Promise<void> {
-  const res = await fetch(`${REST}/comments`, {
+  const res = await fetch(`${API}/comments`, {
     method: "POST",
     headers: { ...auth(token), "Content-Type": "application/json" },
     body: JSON.stringify({
