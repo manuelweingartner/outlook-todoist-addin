@@ -30,14 +30,15 @@ anklicken > .eml haengt als Kommentar-Anhang am Task.
 - `src/lib/settings.ts` - Token lesen/speichern (roamingSettings).
 - `src/lib/emlBuilder.ts` - `MailData` -> gueltiges MIME (.eml). Reine Logik.
 - `src/lib/mailReader.ts` - Office.js-Item -> `MailData` (nur File-Anhaenge).
-- `src/lib/todoist.ts` - **Unified API v1** (`api.todoist.com/api/v1`): getTasks/searchTasks (`/tasks/filter?query=`, paginiert -> `{results}`), uploadFile (`/uploads`), addComment (`/comments`).
-- `src/lib/attachToTask.ts` - Orchestrierung: lesen -> .eml bauen -> 25MB-Check -> upload -> Kommentar.
-- `src/taskpane/taskpane.{html,ts,css}` - UI: Token-Flow, Task-Liste (Heute/Ueberfaellig + Suche), Anhaengen mit Status.
-- `manifest.xml` (Dev, localhost:3000) / `manifest.prod.xml` (Prod, Pages-URL).
+- `src/lib/todoist.ts` - **Unified API v1** (`api.todoist.com/api/v1`): getTasks/searchTasks (`/tasks/filter?query=`, paginiert -> `{results}`), uploadFile (`/uploads`), addComment (`/comments`, gibt Kommentar-id zurueck), deleteComment, getProjects, createTask. `TodoistTask` traegt optional `priority`/`due`.
+- `src/lib/attachToTask.ts` - `prepareCurrentMail` (liest+baut .eml einmal, liefert sizeBytes/subject/commentText), `attachPreparedToTask` (Vorab-25MB-Check, upload, Kommentar, gibt id), `formatMailDate` (UTC-stabil). Kommentartext = Betreff (Datum).
+- `src/taskpane/taskLogic.ts` - Reine Logik: groupTasks (Heute/Ueberfaellig), priorityColor, taskDeepLink, todayIso.
+- `src/taskpane/taskpane.{html,ts,css}` - UI im Todoist-Look (rot `#e44332`, Dark-Mode via prefers-color-scheme, self-contained CSS, kein Fluent-CDN). 5 Zustaende (Onboarding/Skeleton/Liste/Leer/Inline-Anhaengen). Features: Ein-Klick-Anhaengen mit Inline-Haken + Rueckgaengig, Mail-Kontext-Kopf, Vorab-Groessenwarnung, Tastatur-Flow (Enter haengt obersten Treffer an), Projektnamen, In-Todoist-oeffnen, Neuen-Task-aus-Mail.
+- `manifest.xml` (Dev, localhost:3000) / `manifest.prod.xml` (Prod, Pages-URL). **Redesign aenderte das Manifest NICHT -> kein IT-Rollout noetig, Self-Deploy genuegt.**
 
 ## Befehle
 
-- Tests: `npx jest` (25 Tests, ts-jest 29, jsdom).
+- Tests: `npx jest` (39 Tests, ts-jest 29, jsdom).
 - Build: `npm run build` (Production-Webpack -> `dist/`).
 - Manifest pruefen: `npx office-addin-manifest validate manifest.prod.xml`.
 - **Deploy: `npm run deploy`** (baut + setzt `.nojekyll` + published `dist/` nach `gh-pages` via gh-pages-Tool).
@@ -62,6 +63,12 @@ anklicken > .eml haengt als Kommentar-Anhang am Task.
 
 ## Status / Gotchas
 
+- 2026-06-29: **Task-Pane-Redesign** auf Branch `feat/taskpane-redesign` (Spec+Plan in
+  `docs/superpowers/`). Todoist-Look, Dark-Mode, 5 Zustaende, 9 UX-Features. 39 Tests gruen,
+  Build clean, **Manifest unveraendert** (Self-Deploy genuegt, kein IT-Rollout). OFFEN vor
+  Live: (1) v1-API-Feldnamen `priority`/`due.date` mit echtem Token verifizieren (Mapping in
+  taskLogic/todoist haengt dran), (2) Optik-Abnahme Light+Dark, (3) Deeplink
+  `app.todoist.com/app/task/<id>` am Konto pruefen, (4) Deploy mit gh-Account-Switch + on-device-E2E.
 - 2026-06-29: **Zentraler Rollout erfolgt** (Hadi/Interne IT, Ticket #140204, fuer Manuel
   freigeschaltet via M365 Integrierte Apps). Erster echter Aufruf gegen Todoist scheiterte
   mit `Failed to fetch`.
