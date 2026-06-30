@@ -30,7 +30,7 @@ function renderSizeWarning(): void {
   const MAX = 25 * 1024 * 1024;
   const warn = $("size-warning");
   if (prepared && prepared.sizeBytes > MAX) {
-    warn.textContent = `Mail ist ${(prepared.sizeBytes / 1024 / 1024).toFixed(1)} MB gross. Todoist erlaubt max 25 MB, Anhaengen ist deaktiviert.`;
+    warn.textContent = `Mail ist ${(prepared.sizeBytes / 1024 / 1024).toFixed(1)} MB gross. Todoist erlaubt max 25 MB, Anhängen ist deaktiviert.`;
     warn.hidden = false;
   } else {
     warn.hidden = true;
@@ -56,18 +56,23 @@ function makeRow(task: TodoistTask): HTMLLIElement {
   dot.style.background = priorityColor(task.priority);
   btn.appendChild(dot);
 
+  const main = document.createElement("span");
+  main.className = "task-main";
+
   const content = document.createElement("span");
   content.className = "content";
   content.textContent = task.content;
-  btn.appendChild(content);
+  main.appendChild(content);
 
   const projectName = projectNames[task.project_id];
   if (projectName) {
     const proj = document.createElement("span");
     proj.className = "project";
     proj.textContent = projectName;
-    btn.appendChild(proj);
+    main.appendChild(proj);
   }
+
+  btn.appendChild(main);
 
   const state = document.createElement("span");
   state.className = "state";
@@ -77,7 +82,7 @@ function makeRow(task: TodoistTask): HTMLLIElement {
 
   const open = document.createElement("button");
   open.className = "row-open";
-  open.title = "In Todoist oeffnen";
+  open.title = "In Todoist öffnen";
   open.textContent = "↗"; // Pfeil nach oben rechts
   open.onclick = (e) => { e.stopPropagation(); window.open(taskDeepLink(task.id), "_blank", "noopener"); };
 
@@ -96,7 +101,7 @@ function renderTasks(tasks: TodoistTask[]): void {
   empty.hidden = true;
 
   const { overdue, today } = groupTasks(tasks, todayIso(new Date()));
-  const sections: Array<[string, TodoistTask[]]> = [["Ueberfaellig", overdue], ["Heute", today]];
+  const sections: Array<[string, TodoistTask[]]> = [["Überfällig", overdue], ["Heute", today]];
   for (const [label, list] of sections) {
     if (list.length === 0) continue;
     const h = document.createElement("p");
@@ -138,7 +143,7 @@ function renderUndo(li: HTMLElement, token: string, commentId: string, state: HT
   if (!commentId) return;
   const undo = document.createElement("button");
   undo.className = "undo";
-  undo.textContent = "Rueckgaengig";
+  undo.textContent = "Rückgängig";
   undo.onclick = async () => {
     undo.disabled = true;
     try {
@@ -149,7 +154,7 @@ function renderUndo(li: HTMLElement, token: string, commentId: string, state: HT
       setStatus("Anhang entfernt.", "ok");
     } catch (e) {
       undo.disabled = false;
-      setStatus(`Rueckgaengig fehlgeschlagen: ${(e as Error).message}`, "err", e);
+      setStatus(`Rückgängig fehlgeschlagen: ${(e as Error).message}`, "err", e);
     }
   };
   li.appendChild(undo);
@@ -165,7 +170,7 @@ async function loadTasks(token: string): Promise<void> {
     renderTasks(tasks);
   } catch (e) {
     setSkeleton(false);
-    setStatus(`Token ungueltig oder Abruf fehlgeschlagen: ${(e as Error).message}`, "err", e);
+    setStatus(`Token ungültig oder Abruf fehlgeschlagen: ${(e as Error).message}`, "err", e);
     showTokenSection();
   }
 }

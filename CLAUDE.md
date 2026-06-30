@@ -63,6 +63,13 @@ anklicken > .eml haengt als Kommentar-Anhang am Task.
 
 ## Status / Gotchas
 
+- 2026-06-30: **UX-Feinschliff (live deployed).** (1) Alle sichtbaren Task-Pane-Texte
+  auf echte Umlaute umgestellt (Anhängen/hängen/öffnen/einfügen/für/Überfällig/Rückgängig/ungültig;
+  `gross` bleibt Schweizer Deutsch, kein ß). (2) Trefferzeile umgebaut: Titel ist jetzt
+  die prominente Hauptzeile (`.task-main` Spalten-Flex, `font-weight 500`, bis 2 Zeilen),
+  Projekt als kleine graue Unterzeile darunter, Öffnen-Pfeil rechts (`li` ist jetzt Flex).
+  39 Tests gruen, Build clean, `npm run deploy` raus. **manifest.prod.xml-Tooltips bewusst
+  NICHT angefasst** (Umlaut-Fix dort wuerde Manifest aendern -> potenzieller IT-Re-Rollout).
 - 2026-06-29: **Task-Pane-Redesign** auf Branch `feat/taskpane-redesign` (Spec+Plan in
   `docs/superpowers/`). Todoist-Look, Dark-Mode, 5 Zustaende, 9 UX-Features. 39 Tests gruen,
   Build clean, **Manifest unveraendert** (Self-Deploy genuegt, kein IT-Rollout). OFFEN vor
