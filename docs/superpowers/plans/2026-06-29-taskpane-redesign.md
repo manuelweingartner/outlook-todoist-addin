@@ -2,20 +2,20 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Die Outlook-Seitenleiste „Mail an Todoist" im Todoist-Look neu gestalten (Branding, Dark-Mode, fuenf saubere Zustaende) und neun UX-Features ergaenzen, ohne das Manifest anzufassen.
+**Goal:** Die Outlook-Seitenleiste „Mail an Todoist" im Todoist-Look neu gestalten (Branding, Dark-Mode, fünf saubere Zustände) und neun UX-Features ergänzen, ohne das Manifest anzufassen.
 
-**Architecture:** Reine Logik (Todoist-API, .eml-Vorbereitung, Task-Gruppierung) bleibt in testbaren Funktionen unter `src/lib/` und neu `src/taskpane/taskLogic.ts`. `taskpane.ts` macht nur noch DOM-Verdrahtung der Zustaende. CSS wird self-contained (Fluent-CDN raus), Farben als CSS-Variablen mit Light-/Dark-Set.
+**Architecture:** Reine Logik (Todoist-API, .eml-Vorbereitung, Task-Gruppierung) bleibt in testbaren Funktionen unter `src/lib/` und neu `src/taskpane/taskLogic.ts`. `taskpane.ts` macht nur noch DOM-Verdrahtung der Zustände. CSS wird self-contained (Fluent-CDN raus), Farben als CSS-Variablen mit Light-/Dark-Set.
 
 **Tech Stack:** TypeScript, Office.js, Webpack, Jest (ts-jest, jsdom). Kein neues Dependency.
 
 ## Global Constraints
 
-- **Kein Manifest-Eingriff.** Nur gehostetes UI aendern; Deploy via `npm run deploy` (Self-Deploy, kein IT-Rollout). `manifest.prod.xml` bleibt unveraendert.
+- **Kein Manifest-Eingriff.** Nur gehostetes UI ändern; Deploy via `npm run deploy` (Self-Deploy, kein IT-Rollout). `manifest.prod.xml` bleibt unverändert.
 - **Keine Em-/En-Dashes** (`—` / `–`) irgendwo (Code, Kommentar, UI-Text). Ersatz: `.` `,` `:` `-` `(...)`.
-- **Echte Umlaute** in user-facing Deutsch (ae/oe/ue nur in Code-Bezeichnern/Kommentaren wo schon ueblich; UI-Text mit ä/ö/ü/ß).
+- **Echte Umlaute** in user-facing Deutsch (ae/oe/ue nur in Code-Bezeichnern/Kommentaren wo schon üblich; UI-Text mit ä/ö/ü/ß).
 - **Kein stilles try/catch:** Fehler immer `console.error(msg, cause)` UND sichtbar im Pane.
 - **TDD:** Neue Logik kommt mit Test zuerst. Test-Runner: `npx jest`.
-- **Git-Identitaet:** Manuel Weingartner <manuel.weingartner@gmx.ch>. NIE CMI. NIE Co-Authored-By Claude/Anthropic.
+- **Git-Identität:** Manuel Weingartner <manuel.weingartner@gmx.ch>. NIE CMI. NIE Co-Authored-By Claude/Anthropic.
 - **Akzentfarbe** Todoist-Rot `#E44332`.
 
 ---
@@ -31,14 +31,14 @@
 - Produces:
   - `interface TodoistTask { id: string; content: string; project_id: string; priority?: number; due?: { date: string; datetime?: string } | null; }`
   - `interface TodoistProject { id: string; name: string; }`
-  - `addComment(token, taskId, file, content?) : Promise<string>` (gibt jetzt die neue Kommentar-id zurueck)
+  - `addComment(token, taskId, file, content?) : Promise<string>` (gibt jetzt die neue Kommentar-id zurück)
   - `deleteComment(token: string, commentId: string): Promise<void>`
   - `getProjects(token: string): Promise<TodoistProject[]>`
   - `createTask(token: string, content: string): Promise<TodoistTask>`
 
 - [ ] **Step 1: Tests schreiben (failing)**
 
-In `tests/todoist.test.ts` ans Ende anfuegen:
+In `tests/todoist.test.ts` ans Ende anfügen:
 
 ```ts
 import {
@@ -96,14 +96,14 @@ describe("createTask", () => {
 
 Stelle sicher, dass `addComment` und `TodoistError` oben in der Datei importiert sind (sie sind es bereits).
 
-- [ ] **Step 2: Tests laufen lassen (muessen fehlschlagen)**
+- [ ] **Step 2: Tests laufen lassen (müssen fehlschlagen)**
 
 Run: `npx jest tests/todoist.test.ts`
 Expected: FAIL (`deleteComment`/`getProjects`/`createTask` not exported; `addComment` returns undefined).
 
 - [ ] **Step 3: Implementierung in `src/lib/todoist.ts`**
 
-`TodoistTask` ersetzen und `TodoistProject` ergaenzen:
+`TodoistTask` ersetzen und `TodoistProject` ergänzen:
 
 ```ts
 export interface TodoistTask {
@@ -116,7 +116,7 @@ export interface TodoistTask {
 export interface TodoistProject { id: string; name: string; }
 ```
 
-`addComment` so aendern, dass es die id zurueckgibt:
+`addComment` so ändern, dass es die id zurückgibt:
 
 ```ts
 export async function addComment(token: string, taskId: string, file: UploadedFile, content = ""): Promise<string> {
@@ -157,7 +157,7 @@ export async function createTask(token: string, content: string): Promise<Todois
 }
 ```
 
-- [ ] **Step 4: Tests laufen lassen (muessen gruen sein)**
+- [ ] **Step 4: Tests laufen lassen (müssen grün sein)**
 
 Run: `npx jest tests/todoist.test.ts`
 Expected: PASS (alle, inkl. der bestehenden).
@@ -171,7 +171,7 @@ git commit -m "Todoist-API: priority/due, deleteComment, getProjects, createTask
 
 ---
 
-### Task 2: Mail-Vorbereitung + Anhaenge-Flow (Groessen-Vorabcheck, Betreff als Kommentar, Undo-faehige id)
+### Task 2: Mail-Vorbereitung + Anhänge-Flow (Grössen-Vorabcheck, Betreff als Kommentar, Undo-fähige id)
 
 **Files:**
 - Modify: `src/lib/attachToTask.ts`
@@ -183,7 +183,7 @@ git commit -m "Todoist-API: priority/due, deleteComment, getProjects, createTask
   - `interface PreparedMail { blob: Blob; fileName: string; sizeBytes: number; subject: string; commentText: string; }`
   - `formatMailDate(utc: string): string` (gibt `dd.mm.yyyy` oder `""`)
   - `prepareCurrentMail(): Promise<PreparedMail>`
-  - `attachPreparedToTask(token: string, taskId: string, prepared: PreparedMail): Promise<string>` (gibt Kommentar-id zurueck)
+  - `attachPreparedToTask(token: string, taskId: string, prepared: PreparedMail): Promise<string>` (gibt Kommentar-id zurück)
   - `attachCurrentMailToTask(token, taskId): Promise<string>` (bleibt als Convenience-Wrapper)
 
 - [ ] **Step 1: Tests schreiben (failing)**
@@ -204,7 +204,7 @@ describe("formatMailDate", () => {
 });
 ```
 
-`tests/attachToTask.orchestration.test.ts` anpassen: den happy-path-Test so aendern, dass der Kommentartext geprueft wird und die id zurueckkommt. Ersetze die `addComment`-Assertion und ergaenze einen Prepared-Test:
+`tests/attachToTask.orchestration.test.ts` anpassen: den happy-path-Test so ändern, dass der Kommentartext geprüft wird und die id zurückkommt. Ersetze die `addComment`-Assertion und ergänze einen Prepared-Test:
 
 ```ts
 import { attachCurrentMailToTask, attachPreparedToTask, prepareCurrentMail, MAX_BYTES } from "../src/lib/attachToTask";
@@ -236,7 +236,7 @@ test("prepareCurrentMail liefert sizeBytes + commentText", async () => {
 
 (Der bestehende ">25 MB"-Test bleibt; er ruft weiterhin `attachCurrentMailToTask` und erwartet Throw + kein Upload.)
 
-- [ ] **Step 2: Tests laufen lassen (muessen fehlschlagen)**
+- [ ] **Step 2: Tests laufen lassen (müssen fehlschlagen)**
 
 Run: `npx jest tests/attachToTask.prepare.test.ts tests/attachToTask.orchestration.test.ts`
 Expected: FAIL (`formatMailDate`/`prepareCurrentMail`/`attachPreparedToTask` not exported; addComment-4-Arg-Aufruf fehlt).
@@ -301,7 +301,7 @@ export async function attachCurrentMailToTask(token: string, taskId: string): Pr
 }
 ```
 
-- [ ] **Step 4: Tests laufen lassen (muessen gruen sein)**
+- [ ] **Step 4: Tests laufen lassen (müssen grün sein)**
 
 Run: `npx jest tests/attachToTask.prepare.test.ts tests/attachToTask.orchestration.test.ts`
 Expected: PASS.
@@ -315,7 +315,7 @@ git commit -m "Mail-Vorbereitung: prepareCurrentMail, Vorab-Groessencheck, Betre
 
 ---
 
-### Task 3: Reine Task-Pane-Logik (Gruppierung, Prioritaetsfarbe, Deeplink)
+### Task 3: Reine Task-Pane-Logik (Gruppierung, Prioritätsfarbe, Deeplink)
 
 **Files:**
 - Create: `src/taskpane/taskLogic.ts`
@@ -415,7 +415,7 @@ export function taskDeepLink(id: string): string {
 }
 ```
 
-- [ ] **Step 4: Test laufen lassen (muss gruen sein)**
+- [ ] **Step 4: Test laufen lassen (muss grün sein)**
 
 Run: `npx jest tests/taskLogic.test.ts`
 Expected: PASS.
@@ -429,14 +429,14 @@ git commit -m "Task-Pane-Logik: groupTasks, priorityColor, taskDeepLink, todayIs
 
 ---
 
-### Task 4: HTML-Struktur + Todoist-CSS (Branding, Dark-Mode, fuenf Zustaende, Fluent-CDN raus)
+### Task 4: HTML-Struktur + Todoist-CSS (Branding, Dark-Mode, fünf Zustände, Fluent-CDN raus)
 
 **Files:**
 - Modify: `src/taskpane/taskpane.html`
 - Modify: `src/taskpane/taskpane.css` (komplett ersetzen)
 
 **Interfaces:**
-- Produces (DOM-Vertrag fuer Task 5, exakte Element-ids):
+- Produces (DOM-Vertrag für Task 5, exakte Element-ids):
   `app-header`, `context-bar`, `context-subject`, `token-section`, `token-input`, `token-save`,
   `task-section`, `search`, `list-region`, `skeleton`, `empty`, `task-groups`, `new-task`, `size-warning`, `status`.
 
@@ -578,7 +578,7 @@ ul.task-list { list-style: none; margin: 0; padding: 0; }
 #status.ok { color: var(--ok); }
 ```
 
-- [ ] **Step 3: Build pruefen**
+- [ ] **Step 3: Build prüfen**
 
 Run: `npm run build`
 Expected: Webpack-Build ohne Fehler, `dist/taskpane.html` + `dist/taskpane.css` erzeugt. (Verdrahtung folgt in Task 5; UI ist hier noch statisch.)
@@ -592,7 +592,7 @@ git commit -m "Task-Pane: Todoist-Branding, Dark-Mode, fuenf-Zustaende-Markup, F
 
 ---
 
-### Task 5: `taskpane.ts` neu verdrahten (Zustaende, Inline-Feedback, Undo, Tastatur, Groessencheck, Projektnamen, neuer Task, Open-in-Todoist)
+### Task 5: `taskpane.ts` neu verdrahten (Zustände, Inline-Feedback, Undo, Tastatur, Grössencheck, Projektnamen, neuer Task, Open-in-Todoist)
 
 **Files:**
 - Modify: `src/taskpane/taskpane.ts` (komplett ersetzen)
@@ -872,7 +872,7 @@ Expected: Webpack-Build ohne Fehler.
 
 - [ ] **Step 3: Lint**
 
-Run: `npx eslint src --ext .ts` (falls konfiguriert; sonst ueberspringen)
+Run: `npx eslint src --ext .ts` (falls konfiguriert; sonst überspringen)
 Expected: keine Fehler (insbesondere keine ungenutzten Importe).
 
 - [ ] **Step 4: Commit**
@@ -886,19 +886,19 @@ git commit -m "Task-Pane verdrahtet: Zustaende, Inline-Feedback, Undo, Tastatur-
 
 ### Task 6: Verifikation am echten Konto + Deploy
 
-**Files:** keine Code-Aenderung (Verifikations-Gate). Falls die API-Felder abweichen, zurueck zu Task 1/3.
+**Files:** keine Code-Änderung (Verifikations-Gate). Falls die API-Felder abweichen, zurück zu Task 1/3.
 
-- [ ] **Step 1: Manifest-Unveraendertheit pruefen**
+- [ ] **Step 1: Manifest-Unverändertheit prüfen**
 
 Run: `git status --porcelain manifest.prod.xml`
-Expected: leere Ausgabe (Manifest nicht angefasst, kein IT-Rollout noetig).
+Expected: leere Ausgabe (Manifest nicht angefasst, kein IT-Rollout nötig).
 
 Run: `npx office-addin-manifest validate manifest.prod.xml`
 Expected: „is valid".
 
 - [ ] **Step 2: API-Felder empirisch verifizieren (Konvention: konkrete Fakten verifizieren)**
 
-Mit echtem Token gegen die v1-API pruefen, dass `priority` und `due.date` so geliefert werden wie angenommen (sonst Mapping in Task 1/3 anpassen):
+Mit echtem Token gegen die v1-API prüfen, dass `priority` und `due.date` so geliefert werden wie angenommen (sonst Mapping in Task 1/3 anpassen):
 
 ```bash
 curl -s -H "Authorization: Bearer <TOKEN>" \
@@ -906,11 +906,11 @@ curl -s -H "Authorization: Bearer <TOKEN>" \
 ```
 Erwartet: Objekte mit `priority` (1..4) und `due: { date: "YYYY-MM-DD", ... }`.
 
-Deeplink am Konto pruefen: `https://app.todoist.com/app/task/<id>` oeffnet den Task.
+Deeplink am Konto prüfen: `https://app.todoist.com/app/task/<id>` öffnet den Task.
 
 - [ ] **Step 3: Optik visuell abnehmen (Design-Entscheidung beim Nutzer)**
 
-Lokal `npm run dev-server` starten und `https://localhost:3000/taskpane.html` im Browser oeffnen (Office.js-Aufrufe schlagen ausserhalb Outlook fehl, aber Layout/Light/Dark/Skeleton/Token-Screen sind sichtbar). Screenshot an Manuel; Light- und Dark-Mode zeigen. Erst nach seinem OK deployen (Praeferenz: visuelle/UX-Calls bestaetigt der Nutzer).
+Lokal `npm run dev-server` starten und `https://localhost:3000/taskpane.html` im Browser öffnen (Office.js-Aufrufe schlagen ausserhalb Outlook fehl, aber Layout/Light/Dark/Skeleton/Token-Screen sind sichtbar). Screenshot an Manuel; Light- und Dark-Mode zeigen. Erst nach seinem OK deployen (Präferenz: visuelle/UX-Calls bestätigt der Nutzer).
 
 - [ ] **Step 4: Deploy (manuell, Account-Switch beachten)**
 
@@ -919,11 +919,11 @@ gh auth switch --user manuelweingartner
 npm run deploy
 gh auth switch --user CMI-Kunden
 ```
-Expected: `dist/` nach `gh-pages` gepusht; Live unter https://manuelweingartner.github.io/outlook-todoist-addin/taskpane.html. Add-in in Outlook oeffnen (Cache ggf. leeren), End-to-End ein echtes Mail anhaengen + Rueckgaengig testen.
+Expected: `dist/` nach `gh-pages` gepusht; Live unter https://manuelweingartner.github.io/outlook-todoist-addin/taskpane.html. Add-in in Outlook öffnen (Cache ggf. leeren), End-to-End ein echtes Mail anhängen + Rückgängig testen.
 
 - [ ] **Step 5: CLAUDE.md-Status aktualisieren + Commit**
 
-Im Abschnitt „Status / Gotchas" einen Eintrag mit Datum 2026-06-29 zum Redesign + den 9 Features ergaenzen.
+Im Abschnitt „Status / Gotchas" einen Eintrag mit Datum 2026-06-29 zum Redesign + den 9 Features ergänzen.
 
 ```bash
 git add CLAUDE.md
@@ -936,20 +936,20 @@ git commit -m "Doku: Task-Pane-Redesign 2026-06-29 (Branding, Dark-Mode, 9 Featu
 
 **Spec coverage:**
 - Branding/Rot/Self-contained-CSS/Dark-Mode -> Task 4. ✔
-- Fuenf Zustaende (Onboarding/Skeleton/Liste/Leer/Inline-Anhaengen) -> Task 4 (Markup/CSS) + Task 5 (Verhalten). ✔
-- Ein-Klick-Anhaengen bleibt -> Task 5 `attach()`. ✔
+- Fünf Zustände (Onboarding/Skeleton/Liste/Leer/Inline-Anhängen) -> Task 4 (Markup/CSS) + Task 5 (Verhalten). ✔
+- Ein-Klick-Anhängen bleibt -> Task 5 `attach()`. ✔
 - Feature 1 Undo -> Task 1 `deleteComment` + Task 5 `renderUndo`. ✔
 - Feature 2 Betreff(Datum) als Kommentar -> Task 2 `prepareCurrentMail`/`commentText`. ✔
 - Feature 3 Kontext-Kopf -> Task 4 `context-bar` + Task 5 `renderContextBar`. ✔
 - Feature 5 (neuer Task) -> Task 1 `createTask` + Task 5 `wireNewTask`. ✔
-- Feature 6 Vorab-Groessencheck -> Task 2 `sizeBytes` + Task 5 `renderSizeWarning`/`tooLarge`. ✔
+- Feature 6 Vorab-Grössencheck -> Task 2 `sizeBytes` + Task 5 `renderSizeWarning`/`tooLarge`. ✔
 - Feature 7 Skeleton -> Task 4 CSS + Task 5 `setSkeleton`. ✔
 - Feature 8 Tastatur-Flow -> Task 5 `wireSearch` focus + Enter. ✔
 - Feature 9 Projektname -> Task 1 `getProjects` + Task 5 `loadProjects`/`projectNames`. ✔
 - Feature 10 Open-in-Todoist -> Task 3 `taskDeepLink` + Task 5 `.row-open`. ✔
 - Daten `priority`/`due` -> Task 1 + Task 3 `groupTasks`/`priorityColor`. ✔
-- Verifikation API-Felder + Deeplink + Manifest unveraendert -> Task 6. ✔
+- Verifikation API-Felder + Deeplink + Manifest unverändert -> Task 6. ✔
 
-**Placeholder scan:** keine TBD/TODO; jeder Code-Step zeigt vollstaendigen Code.
+**Placeholder scan:** keine TBD/TODO; jeder Code-Step zeigt vollständigen Code.
 
 **Type consistency:** `attachPreparedToTask`/`prepareCurrentMail`/`PreparedMail` einheitlich (Task 2 ↔ Task 5); `getProjects: Promise<TodoistProject[]>` ↔ `projectNames` Map; `addComment: Promise<string>` ↔ `commentId` in Undo. `groupTasks(tasks, today)` Signatur ↔ Aufruf mit `todayIso(new Date())`.
