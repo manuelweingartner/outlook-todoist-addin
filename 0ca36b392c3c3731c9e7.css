@@ -74,7 +74,8 @@ ul.task-list li { display: flex; align-items: center; gap: 2px; }
   .task-row.selected { background: rgba(228, 67, 50, 0.18); }
 }
 #load-error { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 8px 0; }
-#load-error p { margin: 0; }
+#load-error p { margin: 0; font-size: 12px; color: var(--err); }
+#load-error button.primary { width: auto; margin-top: 0; padding: 6px 14px; font-weight: 500; font-size: 13px; }
 
 .undo { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; padding: 0; text-decoration: underline; }
 
