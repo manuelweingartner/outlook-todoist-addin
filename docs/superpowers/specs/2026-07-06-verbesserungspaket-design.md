@@ -100,6 +100,19 @@ Ist auch die Text-only-Variante über 25 MB (Riesen-Body), bleibt alles deaktivi
 - `taskpane.ts`: State `mailData: MailData | null`; Warnungs-Rendering mit Button;
   Hinweis-Text bei aktiver Text-only-Variante.
 
+## 6. Desktop-Deeplinks (Nachtrag, Manuel 2026-07-06)
+
+**Verhalten:** Alle Task-Links öffnen den installierten Todoist-Desktop-Client via
+URL-Schema `todoist://task?id=<id>` statt app.todoist.com im Browser: die bestehenden
+↗-Pfeile in jeder Zeile UND ein neuer Link "In Todoist öffnen" neben "Rückgängig" nach
+erfolgreichem Anhängen. Vorbehalt: Ob die Outlook-Webview Custom-Protokolle durchlässt,
+zeigt der on-device-Test; falls nicht, Revert auf Web-Links (Ein-Zeilen-Änderung).
+
+**Umsetzung:** `taskDeepLink(id)` in `taskLogic.ts` liefert neu `todoist://task?id=<id>`
+(Test anpassen). Navigation über Anchor-Click-Helfer `openExternal(url)` in `taskpane.ts`
+(window.open ist bei Custom-Protokollen unzuverlässig). `renderUndo` erhält die Task-Id
+und rendert den Zusatz-Link im Undo-Stil.
+
 ## Fehlerbehandlung
 
 - Formular: Fehler beim Erstellen/Anhängen wie bisher via `setStatus(..., "err", e)`;

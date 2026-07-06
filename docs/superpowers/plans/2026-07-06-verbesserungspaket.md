@@ -918,6 +918,93 @@ git commit -m "Task-Pane: Text-only-Anhaengen bei uebergrossen Mails + Doku-Stan
 
 ---
 
+### Task 8: Desktop-Deeplinks (todoist://)
+
+**Files:**
+- Modify: `src/taskpane/taskLogic.ts` (`taskDeepLink` umstellen)
+- Modify: `src/taskpane/taskpane.ts` (`openExternal`-Helfer, row-open-Handler, `renderUndo` mit Task-Id + Zusatz-Link)
+- Test: `tests/taskLogic.test.ts` (bestehenden taskDeepLink-Test anpassen)
+
+**Interfaces:**
+- Consumes: bestehendes `taskDeepLink(id: string): string`, `renderUndo(li, token, commentId, state)` und den row-open-Button in `makeRow` (nutzt aktuell `window.open(taskDeepLink(...), "_blank", "noopener")`).
+- Produces: `taskDeepLink` liefert neu `todoist://task?id=<id>`; `openExternal(url: string): void` in taskpane.ts; `renderUndo(li, token, commentId, state, taskId)` rendert zusätzlich den Link "In Todoist öffnen".
+
+- [ ] **Step 1: Failing Test anpassen**
+
+In `tests/taskLogic.test.ts` den bestehenden taskDeepLink-Test ersetzen:
+
+```ts
+describe("taskDeepLink", () => {
+  test("baut todoist://-Desktop-URL", () => {
+    expect(taskDeepLink("t5")).toBe("todoist://task?id=t5");
+  });
+});
+```
+
+Run: `npx jest tests/taskLogic.test.ts`
+Expected: FAIL (liefert noch https-URL).
+
+- [ ] **Step 2: taskDeepLink umstellen**
+
+In `src/taskpane/taskLogic.ts`:
+
+```ts
+// Oeffnet den installierten Todoist-Desktop-Client (URL-Schema), nicht den Browser.
+export function taskDeepLink(id: string): string {
+  return `todoist://task?id=${id}`;
+}
+```
+
+Run: `npx jest tests/taskLogic.test.ts`
+Expected: PASS.
+
+- [ ] **Step 3: taskpane.ts: openExternal + row-open + renderUndo-Link**
+
+Neuer Helfer (window.open ist bei Custom-Protokollen unzuverlaessig, Anchor-Click triggert den OS-Protokoll-Handler):
+
+```ts
+function openExternal(url: string): void {
+  const a = document.createElement("a");
+  a.href = url;
+  a.rel = "noopener";
+  a.click();
+}
+```
+
+In `makeRow` den open-Handler ersetzen:
+
+```ts
+open.onclick = (e) => { e.stopPropagation(); openExternal(taskDeepLink(task.id)); };
+```
+
+`renderUndo` bekommt die Task-Id (Signatur + Aufrufer in `attach` anpassen: `renderUndo(li, token, commentId, state, task.id)`) und rendert nach dem Undo-Button:
+
+```ts
+function renderUndo(li: HTMLElement, token: string, commentId: string, state: HTMLElement, taskId: string): void {
+  if (!commentId) return;
+  // ... bestehender undo-Button-Code unveraendert ...
+  const openLink = document.createElement("button");
+  openLink.className = "undo";
+  openLink.textContent = "In Todoist öffnen";
+  openLink.onclick = () => openExternal(taskDeepLink(taskId));
+  li.appendChild(openLink);
+}
+```
+
+(Der Link nutzt bewusst den bestehenden `.undo`-Stil: zwei kleine Textaktionen nebeneinander.)
+
+- [ ] **Step 4: Verifizieren + Commit**
+
+Run: `npx jest && npm run build`
+Expected: PASS + Build clean.
+
+```bash
+git add src/taskpane/taskLogic.ts src/taskpane/taskpane.ts tests/taskLogic.test.ts
+git commit -m "Task-Links oeffnen den Todoist-Desktop-Client (todoist://) + Link nach Ablage"
+```
+
+---
+
 ## Verifikation nach Abschluss
 
 - `npx jest` alle gruen, `npm run build` clean.
