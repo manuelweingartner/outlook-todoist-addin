@@ -24,9 +24,15 @@
   <script>
     // Diese Seite laeuft im System-Browser (nicht in der Outlook-Webview) und darf
     // deshalb das todoist://-Protokoll ausloesen. Die Task-Id ist die neue
-    // alphanumerische v1-Id; genau die versteht todoist://task?id= im Desktop-Client
-    // (per App-Log verifiziert, oeffnet die korrekte Task). Die alte numerische Id
-    // lehnt der Client ab - deshalb KEINE Id-Uebersetzung.
+    // alphanumerische v1-Id.
+    //
+    // Deeplink-Format: NICHT todoist://task?id= verwenden - das oeffnet zwar die
+    // richtige Task, gilt aber als veraltetes Link-Format und zeigt jedes Mal eine
+    // "Link aktualisieren"-Warnung. Stattdessen todoist://navigate-to?url= mit der
+    // neuen Task-URL (app.todoist.com/app/task/<id>): der Desktop-Client navigiert
+    // direkt ueber das neue Format, keine Warnung (per App-Log + Screenshot verifiziert:
+    // "Navigation deeplink successfully navigated to: task"). Der Host heisst
+    // "navigate-to" (mit Bindestrich), die url muss same-origin app.todoist.com sein.
     //
     // WICHTIG: NICHT automatisch window.close() aufrufen. Chrome zeigt beim ersten
     // Mal einen Bestaetigungsdialog ("todoist-Link oeffnen?"); schliesst sich die
@@ -38,9 +44,10 @@
     var id = params.get("id") || "";
     var safe = idOk(id) ? id : "";
     if (safe) {
-      var appUrl = "todoist://task?id=" + safe;
+      var webUrl = "https://app.todoist.com/app/task/" + safe;
+      var appUrl = "todoist://navigate-to?url=" + webUrl;
       document.getElementById("app").href = appUrl;
-      document.getElementById("web").href = "https://app.todoist.com/app/task/" + safe;
+      document.getElementById("web").href = webUrl;
       // Auto-Versuch (klappt, sobald der Nutzer todoist:// einmal erlaubt hat).
       window.location.href = appUrl;
     } else {

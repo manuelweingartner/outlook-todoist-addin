@@ -86,6 +86,17 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
   bricht Chromes Erlaubnis-Dialog ab. Auto-Fire versuchen + Klick-Button stehen lassen.**
   **GOTCHA 6: Zum Debuggen von todoist://-Deeplinks das App-Log tailen; es zeigt genau,
   welche URL ankam und ob sie "handled" oder "Cannot handle" wurde.**
+- 2026-07-06 spät (4): **Deprecation-Warnung "Link aktualisieren" beseitigt.** `todoist://task?id=`
+  oeffnet zwar die richtige Task, gilt aber als altes Link-Format (Todoists "Aktualisiere veraltete
+  Aufgabenlinks", showTask?id=<v1_id>) und zeigt JEDES Mal die Warnung. Loesung aus dem App-Bundle
+  (`resources/app.asar`, `deepLinkEndpoints` + `lt(pathname)`): `todoist://navigate-to?url=<neue-URL>`
+  navigiert direkt ueber das NEUE Task-URL-Format `https://app.todoist.com/app/task/<id>` (die
+  einzige gueltige Task-URL laut Doku) und umgeht den alten Resolver -> keine Warnung (Log:
+  "Navigation deeplink successfully navigated to: task", Screenshot bestaetigt korrekte Task ohne
+  Dialog). Host ist `navigate-to` (Bindestrich!), url muss same-origin app.todoist.com sein.
+  **GOTCHA 7: Fuer todoist://-Deeplinks IMMER `navigate-to?url=https://app.todoist.com/app/task/<id>`
+  statt `task?id=<id>` - letzteres triggert die "Link aktualisieren"-Deprecation-Warnung.
+  Die Desktop-App registriert nur todoist:// (kein https-Universal-Link), Desktop nur so erreichbar.**
 - 2026-07-06 spät (2, REVERTIERT): ~~Deep-Link-Fix (`35f3fa5`): todoist://task?id= braucht die ALTE numerische Id.~~ Falsch, siehe oben.
   Symptom: Desktop-App öffnete, sprang aber nicht zum Task. Die v1-API liefert neue
   alphanumerische Ids, das URL-Scheme des Desktop-Clients versteht nur die alten
