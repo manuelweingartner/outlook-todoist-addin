@@ -38,8 +38,8 @@ body {
 .hint { font-size: 12px; color: var(--text-soft); margin: 0 0 12px; padding-left: 18px; }
 .hint li { margin-bottom: 4px; }
 
-input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 14px; }
-input:focus { outline: none; border-color: var(--accent); }
+input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 14px; }
+input:focus, select:focus { outline: none; border-color: var(--accent); }
 
 button { font-family: inherit; font-size: 14px; cursor: pointer; border-radius: 6px; }
 button.primary { width: 100%; margin-top: 8px; padding: 9px; border: none; background: var(--accent); color: #fff; font-weight: 600; }
@@ -69,11 +69,30 @@ ul.task-list li { display: flex; align-items: center; gap: 2px; }
 .row-open { background: none; border: none; padding: 2px 4px; color: var(--text-soft); cursor: pointer; font-size: 12px; }
 .row-open:hover { color: var(--accent); }
 
+.task-row.selected { background: rgba(228, 67, 50, 0.10); box-shadow: inset 2px 0 0 var(--accent); }
+@media (prefers-color-scheme: dark) {
+  .task-row.selected { background: rgba(228, 67, 50, 0.18); }
+}
+#load-error { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 8px 0; }
+#load-error p { margin: 0; }
+
 .undo { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; padding: 0; text-decoration: underline; }
 
 #skeleton { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
 .skel-row { height: 16px; border-radius: 4px; background: linear-gradient(90deg, var(--bg-soft) 25%, var(--bg-hover) 50%, var(--bg-soft) 75%); background-size: 200% 100%; animation: skel 1.2s infinite; }
 @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+#new-task-form { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.nt-row { display: flex; align-items: center; gap: 8px; }
+.nt-label { font-size: 12px; color: var(--text-soft); }
+.nt-prio { display: flex; gap: 6px; }
+.nt-prio button { width: 20px; height: 20px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.nt-prio button.active { border-color: var(--text); }
+.nt-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.nt-chips button { padding: 4px 10px; border-radius: 14px; border: 1px solid var(--border); background: transparent; color: inherit; cursor: pointer; font-size: 12px; }
+.nt-chips button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.nt-actions { display: flex; gap: 8px; }
+.nt-actions button { margin-top: 0; }
 
 #empty { color: var(--text-soft); text-align: center; padding: 20px 0; }
 #status { margin-top: 10px; font-size: 13px; min-height: 18px; }
