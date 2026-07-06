@@ -66,6 +66,18 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 
 ## Status / Gotchas
 
+- 2026-07-06 spät (2): **Deep-Link-Fix (`35f3fa5`, deployed): todoist://task?id= braucht die ALTE numerische Id.**
+  Symptom: Desktop-App öffnete, sprang aber nicht zum Task. Die v1-API liefert neue
+  alphanumerische Ids, das URL-Scheme des Desktop-Clients versteht nur die alten
+  numerischen (Doku-Beispiele durchweg numerisch; Übersetzung via
+  `GET /api/v1/id_mappings/tasks/<ids>` -> `[{old_id, new_id}]`, gechunkt à 100).
+  Umsetzung: `getOldTaskIds` (todoist.ts) lädt das Mapping nicht-blockierend nach dem
+  Task-Load, `openInTodoist` (taskpane.ts) nutzt die alte Id, `taskDeepLink(appId, webId)`
+  gibt beide weiter, `open-task.html` nimmt `id` fürs Protokoll und `web` für den
+  Browser-Fallback. Ohne Mapping (Fehler/leer) Fallback aufs bisherige Verhalten.
+  **GOTCHA 3: todoist://-Schemes (task/project) erwarten die alten numerischen Ids,
+  nie die neuen alphanumerischen der v1-API. Immer über id_mappings übersetzen.**
+  Offen: On-Device-Verifikation durch Manuel (Klick auf ↗ muss den Task öffnen).
 - 2026-07-06 spät: **On-Device-Nachfix-Runde (3 Hotfixes direkt auf master, alle deployed + von Manuel abgenommen).**
   (1) `041daa7`: todoist://-Direktlinks revertiert (siehe Gotcha unten), Projekt-Dropdown
   lädt Projekte beim Formular-Öffnen nach falls Cache leer + "Inbox"-Fallback-Option,
