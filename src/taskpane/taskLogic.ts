@@ -32,8 +32,9 @@ export function taskDeepLink(id: string): string {
   return `https://app.todoist.com/app/task/${id}`;
 }
 
-// Client-seitige Suche: case-insensitiv, alle Woerter muessen matchen (UND),
-// gesucht wird in Task-Titel UND Projektname ("sap" findet Projekt "SAP").
+// Client-seitige Suche: case-insensitiv, alle Woerter muessen matchen (UND).
+// Woerter mit fuehrendem # matchen NUR den Projektnamen ("#sap rechnung"),
+// Woerter ohne # matchen Task-Titel ODER Projektname. Nacktes # wird ignoriert.
 export function filterTasks(
   tasks: TodoistTask[],
   query: string,
@@ -42,8 +43,15 @@ export function filterTasks(
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (words.length === 0) return tasks;
   return tasks.filter((task) => {
-    const hay = `${task.content} ${projectNames[task.project_id] ?? ""}`.toLowerCase();
-    return words.every((w) => hay.includes(w));
+    const project = (projectNames[task.project_id] ?? "").toLowerCase();
+    const hay = `${task.content.toLowerCase()} ${project}`;
+    return words.every((w) => {
+      if (w.startsWith("#")) {
+        const p = w.slice(1);
+        return p === "" ? true : project.includes(p);
+      }
+      return hay.includes(w);
+    });
   });
 }
 
@@ -98,4 +106,10 @@ export function suggestTasks(tasks: TodoistTask[], kw: MailKeywords): TodoistTas
     .filter((s) => s.score > 0);
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, 3).map((s) => s.task);
+}
+
+// Pfeiltasten-Auswahl: clampt auf [0, count-1]; ohne Zeilen gibt es keine Auswahl (-1).
+export function moveSelection(current: number, delta: number, count: number): number {
+  if (count <= 0) return -1;
+  return Math.min(Math.max(current + delta, 0), count - 1);
 }

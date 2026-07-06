@@ -1,4 +1,4 @@
-import { todayIso, groupTasks, priorityColor, taskDeepLink, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks } from "../src/taskpane/taskLogic";
+import { todayIso, groupTasks, priorityColor, taskDeepLink, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection } from "../src/taskpane/taskLogic";
 import { TodoistTask } from "../src/lib/todoist";
 
 const t = (id: string, due: string | null, priority = 1): TodoistTask => ({
@@ -66,6 +66,26 @@ describe("filterTasks", () => {
     const tasks = [named("a", "SAP Thema", "p99")];
     expect(filterTasks(tasks, "sap", projects).map((x) => x.id)).toEqual(["a"]);
   });
+
+  test("#-Wort matcht nur den Projektnamen, nicht den Titel", () => {
+    const tasks = [named("imTitel", "sap Lizenzen klären", "p1"), named("imProjekt", "Rechnung zahlen", "p2")];
+    expect(filterTasks(tasks, "#sap", projects).map((x) => x.id)).toEqual(["imProjekt"]);
+  });
+
+  test("#Projekt kombiniert mit normalem Wort (UND)", () => {
+    const tasks = [named("a", "Rechnung pruefen", "p2"), named("b", "Schulung planen", "p2"), named("c", "Rechnung zahlen", "p1")];
+    expect(filterTasks(tasks, "#sap rechnung", projects).map((x) => x.id)).toEqual(["a"]);
+  });
+
+  test("nacktes # wird ignoriert", () => {
+    const tasks = [named("a", "x"), named("b", "y")];
+    expect(filterTasks(tasks, "#", projects)).toHaveLength(2);
+  });
+
+  test("#-Match ist case-insensitiv", () => {
+    const tasks = [named("a", "Rechnung", "p2")];
+    expect(filterTasks(tasks, "#SAP", projects).map((x) => x.id)).toEqual(["a"]);
+  });
 });
 
 describe("dueTodayOrOverdue", () => {
@@ -99,6 +119,23 @@ describe("extractMailKeywords", () => {
 
   test("leerer Input liefert leere Listen", () => {
     expect(extractMailKeywords("", "")).toEqual({ subjectWords: [], bodyWords: [] });
+  });
+});
+
+describe("moveSelection", () => {
+  test("normaler Schritt runter und rauf", () => {
+    expect(moveSelection(1, 1, 5)).toBe(2);
+    expect(moveSelection(2, -1, 5)).toBe(1);
+  });
+  test("clampt oben und unten", () => {
+    expect(moveSelection(0, -1, 5)).toBe(0);
+    expect(moveSelection(4, 1, 5)).toBe(4);
+  });
+  test("leere Liste liefert -1", () => {
+    expect(moveSelection(0, 1, 0)).toBe(-1);
+  });
+  test("negativer Startindex landet bei 0", () => {
+    expect(moveSelection(-1, 1, 3)).toBe(0);
   });
 });
 
