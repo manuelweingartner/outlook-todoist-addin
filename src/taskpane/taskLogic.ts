@@ -28,8 +28,9 @@ export function priorityColor(priority?: number): string {
   }
 }
 
+// Oeffnet den installierten Todoist-Desktop-Client (URL-Schema), nicht den Browser.
 export function taskDeepLink(id: string): string {
-  return `https://app.todoist.com/app/task/${id}`;
+  return `todoist://task?id=${id}`;
 }
 
 // Client-seitige Suche: case-insensitiv, alle Woerter muessen matchen (UND).

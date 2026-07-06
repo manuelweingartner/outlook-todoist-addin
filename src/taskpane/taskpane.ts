@@ -14,6 +14,13 @@ let selectedIndex = 0;
 
 function $(id: string): HTMLElement { return document.getElementById(id)!; }
 
+function openExternal(url: string): void {
+  const a = document.createElement("a");
+  a.href = url;
+  a.rel = "noopener";
+  a.click();
+}
+
 function visibleRows(): HTMLButtonElement[] {
   return Array.from($("task-groups").querySelectorAll<HTMLButtonElement>(".task-row"));
 }
@@ -123,7 +130,7 @@ function makeRow(task: TodoistTask): HTMLLIElement {
   open.className = "row-open";
   open.title = "In Todoist öffnen";
   open.textContent = "↗"; // Pfeil nach oben rechts
-  open.onclick = (e) => { e.stopPropagation(); window.open(taskDeepLink(task.id), "_blank", "noopener"); };
+  open.onclick = (e) => { e.stopPropagation(); openExternal(taskDeepLink(task.id)); };
 
   li.appendChild(btn);
   li.appendChild(open);
@@ -191,7 +198,7 @@ async function attach(task: TodoistTask, btn: HTMLButtonElement, state: HTMLElem
     const commentId = await attachPreparedToTask(token, task.id, prepared);
     state.className = "state ok";
     state.textContent = "✓"; // Haken
-    renderUndo(li, token, commentId, state);
+    renderUndo(li, token, commentId, state, task.id);
     setStatus("", "");
   } catch (e) {
     state.className = "state";
@@ -203,7 +210,7 @@ async function attach(task: TodoistTask, btn: HTMLButtonElement, state: HTMLElem
   }
 }
 
-function renderUndo(li: HTMLElement, token: string, commentId: string, state: HTMLElement): void {
+function renderUndo(li: HTMLElement, token: string, commentId: string, state: HTMLElement, taskId: string): void {
   if (!commentId) return;
   const undo = document.createElement("button");
   undo.className = "undo";
@@ -222,6 +229,11 @@ function renderUndo(li: HTMLElement, token: string, commentId: string, state: HT
     }
   };
   li.appendChild(undo);
+  const openLink = document.createElement("button");
+  openLink.className = "undo";
+  openLink.textContent = "In Todoist öffnen";
+  openLink.onclick = () => openExternal(taskDeepLink(taskId));
+  li.appendChild(openLink);
 }
 
 async function loadTasks(token: string): Promise<void> {
