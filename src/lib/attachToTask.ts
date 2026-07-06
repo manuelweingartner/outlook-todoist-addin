@@ -10,11 +10,28 @@ export interface PreparedMail {
   sizeBytes: number;
   subject: string;
   commentText: string;
+  bodyText: string;
 }
 
 function sanitizeFileName(subject: string): string {
   const cleaned = (subject || "Mail").replace(/[\\/:*?"<>|]/g, "_").trim();
   return `${cleaned.slice(0, 120) || "Mail"}.eml`;
+}
+
+// Regex-Strip reicht fuer Scoring-Zwecke (kein DOM noetig, laeuft auch in Tests ohne jsdom-Kosten).
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#\d+;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export function emlBlobFor(mail: MailData): { blob: Blob; fileName: string } {
@@ -36,7 +53,8 @@ export async function prepareCurrentMail(): Promise<PreparedMail> {
   const { blob, fileName } = emlBlobFor(mail);
   const datePart = formatMailDate(mail.date);
   const commentText = datePart ? `${mail.subject} (${datePart})` : mail.subject;
-  return { blob, fileName, sizeBytes: blob.size, subject: mail.subject, commentText };
+  const bodyText = htmlToText(mail.htmlBody).slice(0, 2000);
+  return { blob, fileName, sizeBytes: blob.size, subject: mail.subject, commentText, bodyText };
 }
 
 export async function attachPreparedToTask(token: string, taskId: string, prepared: PreparedMail): Promise<string> {
