@@ -77,7 +77,21 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
   Browser-Fallback. Ohne Mapping (Fehler/leer) Fallback aufs bisherige Verhalten.
   **GOTCHA 3: todoist://-Schemes (task/project) erwarten die alten numerischen Ids,
   nie die neuen alphanumerischen der v1-API. Immer über id_mappings übersetzen.**
-  Offen: On-Device-Verifikation durch Manuel (Klick auf ↗ muss den Task öffnen).
+  **GOTCHA 4 (Ursache für Manuels erneuten Fehlversuch): `npm run deploy` meldete
+  "Published", aber der GitHub-Pages-BUILD hing ~18 Min auf "building" (alle sonstigen
+  Builds < 1 Min). Der gh-pages-Branch hatte den Fix (raw.githubusercontent lieferte ihn),
+  aber der Pages-CDN (`manuelweingartner.github.io`) servierte weiter die ALTE Version.
+  Manuel testete also alten Code. Verifikation NIE nur gegen den Branch, immer gegen die
+  Pages-CDN-URL (`curl manuelweingartner.github.io/.../open-task.html`), und Build-Status
+  via `gh api repos/.../pages/builds/latest`. Recovery: Build neu antriggern mit
+  `gh api -X POST repos/manuelweingartner/outlook-todoist-addin/pages/builds`.**
+  Offen/UNVERIFIZIERT: (1) Ob `todoist://task?id=<alte-numerische-id>` im Desktop-Client
+  9.29.1 wirklich zur Task navigiert. On-Device bestätigt: `todoist://today` und
+  `todoist://project?id=` navigieren, aber der Fenstertitel ist als Signal für die
+  Task-Detail-Ansicht unzuverlässig. Der ALTE Live-Code feuerte bereits
+  `todoist://task?id=<neue-alphanumerische-id>` und Manuel meldete "öffnet App, nicht Task"
+  -> neue Id navigiert nicht. Ob die numerische Id via id_mappings das behebt, braucht
+  einen Token-Test (Manuels Todoist-Token, secure stdin, nicht Chat).
 - 2026-07-06 spät: **On-Device-Nachfix-Runde (3 Hotfixes direkt auf master, alle deployed + von Manuel abgenommen).**
   (1) `041daa7`: todoist://-Direktlinks revertiert (siehe Gotcha unten), Projekt-Dropdown
   lädt Projekte beim Formular-Öffnen nach falls Cache leer + "Inbox"-Fallback-Option,
