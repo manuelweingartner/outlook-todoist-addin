@@ -51,3 +51,51 @@ export function filterTasks(
 export function dueTodayOrOverdue(tasks: TodoistTask[], today: string): TodoistTask[] {
   return tasks.filter((task) => !!task.due?.date && task.due.date <= today);
 }
+
+// Kleine DE/EN-Stoppwortliste fuer das Vorschlags-Scoring. Bewusst kurz:
+// falsche Positives kosten nur einen schwachen Vorschlag, keine Fehler.
+const STOPWORDS = new Set([
+  "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer",
+  "und", "oder", "aber", "nicht", "mit", "von", "für", "auf", "aus", "bei", "nach",
+  "über", "unter", "vor", "zum", "zur", "ist", "sind", "war", "wird", "werden",
+  "wurde", "hat", "haben", "kann", "können", "muss", "müssen", "soll", "sich",
+  "auch", "noch", "nur", "schon", "wie", "wir", "ihr", "sie", "ich",
+  "the", "and", "for", "are", "but", "not", "with", "from", "this", "that", "you",
+  "your", "have", "has", "was", "were", "will", "would", "can", "could", "should",
+  "our", "all", "any", "been", "they", "them", "their",
+  "hallo", "liebe", "lieber", "grüsse", "gruss", "freundliche", "freundlichen",
+  "danke", "mail", "regards", "dear", "hello", "thanks",
+]);
+
+export interface MailKeywords { subjectWords: string[]; bodyWords: string[]; }
+
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length >= 3 && !STOPWORDS.has(w));
+}
+
+export function extractMailKeywords(subject: string, bodyText: string): MailKeywords {
+  const cleanSubject = subject.replace(/^((re|aw|fw|fwd|wg)\s*:\s*)+/i, "");
+  const subjectWords = [...new Set(tokenize(cleanSubject))];
+  const subjectSet = new Set(subjectWords);
+  const bodyWords = [...new Set(tokenize(bodyText.slice(0, 2000)))].filter((w) => !subjectSet.has(w));
+  return { subjectWords, bodyWords };
+}
+
+// Top-3-Vorschlaege: Betreff-Wort im Titel = 3 Punkte, Body-Wort = 1 Punkt.
+// Array.prototype.sort ist stabil, Gleichstand behaelt also die Task-Reihenfolge.
+export function suggestTasks(tasks: TodoistTask[], kw: MailKeywords): TodoistTask[] {
+  const scored = tasks
+    .map((task) => {
+      const hay = task.content.toLowerCase();
+      let score = 0;
+      for (const w of kw.subjectWords) if (hay.includes(w)) score += 3;
+      for (const w of kw.bodyWords) if (hay.includes(w)) score += 1;
+      return { task, score };
+    })
+    .filter((s) => s.score > 0);
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, 3).map((s) => s.task);
+}

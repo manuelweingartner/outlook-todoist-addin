@@ -1,4 +1,4 @@
-import { todayIso, groupTasks, priorityColor, taskDeepLink, filterTasks, dueTodayOrOverdue } from "../src/taskpane/taskLogic";
+import { todayIso, groupTasks, priorityColor, taskDeepLink, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks } from "../src/taskpane/taskLogic";
 import { TodoistTask } from "../src/lib/todoist";
 
 const t = (id: string, due: string | null, priority = 1): TodoistTask => ({
@@ -72,5 +72,63 @@ describe("dueTodayOrOverdue", () => {
   test("behaelt heute + ueberfaellig, wirft ohne Datum und Zukunft raus", () => {
     const tasks = [t("alt", "2026-07-01"), t("heute", "2026-07-06"), t("morgen", "2026-07-07"), t("ohne", null)];
     expect(dueTodayOrOverdue(tasks, "2026-07-06").map((x) => x.id)).toEqual(["alt", "heute"]);
+  });
+});
+
+describe("extractMailKeywords", () => {
+  test("entfernt gestapelte RE:/AW:/FW:/WG:-Praefixe", () => {
+    const kw = extractMailKeywords("AW: RE: SAP Lizenzverlängerung", "");
+    expect(kw.subjectWords).toEqual(["sap", "lizenzverlängerung"]);
+  });
+
+  test("filtert Stoppwoerter und Kurzwoerter", () => {
+    const kw = extractMailKeywords("Die Offerte für das neue CRM", "");
+    expect(kw.subjectWords).toEqual(["offerte", "neue", "crm"]);
+  });
+
+  test("Body-Woerter dedupliziert und ohne Betreff-Duplikate", () => {
+    const kw = extractMailKeywords("SAP Update", "Das SAP Update betrifft die Migration. Migration startet bald.");
+    expect(kw.subjectWords).toEqual(["sap", "update"]);
+    expect(kw.bodyWords).toEqual(["betrifft", "migration", "startet", "bald"]);
+  });
+
+  test("Body wird bei 2000 Zeichen gekappt", () => {
+    const kw = extractMailKeywords("x", "a".repeat(2000) + " spätwort");
+    expect(kw.bodyWords).not.toContain("spätwort");
+  });
+
+  test("leerer Input liefert leere Listen", () => {
+    expect(extractMailKeywords("", "")).toEqual({ subjectWords: [], bodyWords: [] });
+  });
+});
+
+describe("suggestTasks", () => {
+  const kw = { subjectWords: ["sap", "lizenz"], bodyWords: ["migration"] };
+
+  test("gewichtet Betreff 3, Body 1 und sortiert absteigend", () => {
+    const tasks = [
+      named("nurBody", "Migration vorbereiten"),
+      named("beide", "SAP Lizenz verlängern"),
+      named("einSubject", "SAP Schulung"),
+    ];
+    expect(suggestTasks(tasks, kw).map((x) => x.id)).toEqual(["beide", "einSubject", "nurBody"]);
+  });
+
+  test("Score 0 wird nie vorgeschlagen", () => {
+    expect(suggestTasks([named("a", "Zmittag buchen")], kw)).toEqual([]);
+  });
+
+  test("maximal 3 Vorschlaege", () => {
+    const tasks = ["a", "b", "c", "d"].map((id) => named(id, `SAP ${id}`));
+    expect(suggestTasks(tasks, kw)).toHaveLength(3);
+  });
+
+  test("matcht case-insensitiv gegen den Task-Titel", () => {
+    expect(suggestTasks([named("a", "sap lizenzen")], kw).map((x) => x.id)).toEqual(["a"]);
+  });
+
+  test("stabile Reihenfolge bei Gleichstand", () => {
+    const tasks = [named("erst", "SAP eins"), named("zweit", "SAP zwei")];
+    expect(suggestTasks(tasks, kw).map((x) => x.id)).toEqual(["erst", "zweit"]);
   });
 });
