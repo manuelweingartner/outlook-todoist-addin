@@ -1,11 +1,13 @@
 import { getToken, setToken } from "../lib/settings";
 import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, TodoistTask } from "../lib/todoist";
-import { prepareCurrentMail, attachPreparedToTask, PreparedMail } from "../lib/attachToTask";
+import { readAndPrepareCurrentMail, prepareMail, attachPreparedToTask, PreparedMail, MAX_BYTES } from "../lib/attachToTask";
+import { MailData } from "../lib/emlBuilder";
 import { groupTasks, priorityColor, taskDeepLink, todayIso, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions, DueChip } from "./taskLogic";
 
 let busy = false;
 let searchWired = false;
 let prepared: PreparedMail | null = null;
+let mailData: MailData | null = null;
 let projectNames: Record<string, string> = {};
 let allTasks: TodoistTask[] = [];
 let selectedIndex = 0;
@@ -40,10 +42,34 @@ function renderContextBar(): void {
 }
 
 function renderSizeWarning(): void {
-  const MAX = 25 * 1024 * 1024;
   const warn = $("size-warning");
-  if (prepared && prepared.sizeBytes > MAX) {
-    warn.textContent = `Mail ist ${(prepared.sizeBytes / 1024 / 1024).toFixed(1)} MB gross. Todoist erlaubt max 25 MB, Anhängen ist deaktiviert.`;
+  warn.innerHTML = "";
+  if (prepared && prepared.sizeBytes > MAX_BYTES) {
+    const text = document.createElement("span");
+    text.textContent = `Mail ist ${(prepared.sizeBytes / 1024 / 1024).toFixed(1)} MB gross (Todoist erlaubt max 25 MB). `;
+    warn.appendChild(text);
+    if (mailData && mailData.attachments.length > 0) {
+      const strip = document.createElement("button");
+      strip.className = "ghost";
+      strip.textContent = "Ohne Anhänge anhängen";
+      strip.onclick = () => {
+        prepared = prepareMail(mailData!, false);
+        if (prepared.sizeBytes > MAX_BYTES) {
+          // Body allein schon zu gross: Warnung aktualisieren, KEIN renderSizeWarning()
+          // (das wuerde den wirkungslosen Button erneut anbieten).
+          warn.textContent = `Auch ohne Anhänge ist die Mail ${(prepared.sizeBytes / 1024 / 1024).toFixed(1)} MB gross, Anhängen bleibt deaktiviert.`;
+          warn.hidden = false;
+        } else {
+          // Erfolgszweig: Hinweis setzen, NICHT renderSizeWarning() aufrufen
+          // (tooLarge() ist jetzt false und wuerde den Hinweis verstecken).
+          warn.textContent = "Anhänge werden weggelassen.";
+          warn.hidden = false;
+          ($("new-task") as HTMLButtonElement).disabled = false;
+        }
+        rerender(); // Zeilen mit neuem tooLarge()-Zustand neu aufbauen
+      };
+      warn.appendChild(strip);
+    }
     warn.hidden = false;
   } else {
     warn.hidden = true;
@@ -52,7 +78,7 @@ function renderSizeWarning(): void {
 }
 
 function tooLarge(): boolean {
-  return !!prepared && prepared.sizeBytes > 25 * 1024 * 1024;
+  return !!prepared && prepared.sizeBytes > MAX_BYTES;
 }
 
 function setSkeleton(on: boolean): void { $("skeleton").hidden = !on; }
@@ -353,7 +379,9 @@ async function start(): Promise<void> {
   showTaskSection();
 
   try {
-    prepared = await prepareCurrentMail();
+    const { mail, prepared: p } = await readAndPrepareCurrentMail();
+    mailData = mail;
+    prepared = p;
     renderContextBar();
     renderSizeWarning();
   } catch (e) {
