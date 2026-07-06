@@ -1,4 +1,4 @@
-import { TodoistTask } from "../lib/todoist";
+import { TodoistTask, NewTaskOptions } from "../lib/todoist";
 
 export function todayIso(now: Date): string {
   const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -112,4 +112,41 @@ export function suggestTasks(tasks: TodoistTask[], kw: MailKeywords): TodoistTas
 export function moveSelection(current: number, delta: number, count: number): number {
   if (count <= 0) return -1;
   return Math.min(Math.max(current + delta, 0), count - 1);
+}
+
+export type DueChip = "today" | "tomorrow" | "nextWeek" | "none";
+
+export interface NewTaskInput {
+  title: string;
+  projectId: string | null;
+  priority: number; // 1..4 wie Todoist, 1 = keine (P4)
+  dueChip: DueChip;
+  dueText: string;
+  today: string; // YYYY-MM-DD
+}
+
+function addDays(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// Freitext gewinnt ueber Chip (geht als due_string an Todoists Sprach-Parser);
+// Chips erzeugen deterministische due_date ohne Parsing-Risiko.
+export function buildNewTaskOptions(input: NewTaskInput): NewTaskOptions {
+  const opts: NewTaskOptions = { content: input.title.trim() || "Mail" };
+  if (input.projectId) opts.project_id = input.projectId;
+  if (input.priority > 1) opts.priority = input.priority;
+  const dueText = input.dueText.trim();
+  if (dueText) {
+    opts.due_string = dueText;
+    opts.due_lang = "de";
+  } else if (input.dueChip === "today") {
+    opts.due_date = input.today;
+  } else if (input.dueChip === "tomorrow") {
+    opts.due_date = addDays(input.today, 1);
+  } else if (input.dueChip === "nextWeek") {
+    opts.due_date = addDays(input.today, 7);
+  }
+  return opts;
 }

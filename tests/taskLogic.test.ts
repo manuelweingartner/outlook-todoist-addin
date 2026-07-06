@@ -1,4 +1,4 @@
-import { todayIso, groupTasks, priorityColor, taskDeepLink, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection } from "../src/taskpane/taskLogic";
+import { todayIso, groupTasks, priorityColor, taskDeepLink, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions } from "../src/taskpane/taskLogic";
 import { TodoistTask } from "../src/lib/todoist";
 
 const t = (id: string, due: string | null, priority = 1): TodoistTask => ({
@@ -136,6 +136,37 @@ describe("moveSelection", () => {
   });
   test("negativer Startindex landet bei 0", () => {
     expect(moveSelection(-1, 1, 3)).toBe(0);
+  });
+});
+
+describe("buildNewTaskOptions", () => {
+  const base = { title: "Task", projectId: null, priority: 1, dueChip: "none" as const, dueText: "", today: "2026-07-06" };
+
+  test("minimal: nur content", () => {
+    expect(buildNewTaskOptions(base)).toEqual({ content: "Task" });
+  });
+  test("Chips mappen deterministisch auf due_date (+0/+1/+7)", () => {
+    expect(buildNewTaskOptions({ ...base, dueChip: "today" }).due_date).toBe("2026-07-06");
+    expect(buildNewTaskOptions({ ...base, dueChip: "tomorrow" }).due_date).toBe("2026-07-07");
+    expect(buildNewTaskOptions({ ...base, dueChip: "nextWeek" }).due_date).toBe("2026-07-13");
+  });
+  test("Monatswechsel beim Addieren", () => {
+    expect(buildNewTaskOptions({ ...base, dueChip: "tomorrow", today: "2026-07-31" }).due_date).toBe("2026-08-01");
+  });
+  test("Freitext gewinnt ueber Chip und geht als due_string mit de", () => {
+    const o = buildNewTaskOptions({ ...base, dueChip: "today", dueText: "naechsten freitag" });
+    expect(o.due_string).toBe("naechsten freitag");
+    expect(o.due_lang).toBe("de");
+    expect(o.due_date).toBeUndefined();
+  });
+  test("Prioritaet 1 (keine) wird weggelassen, andere gesendet", () => {
+    expect(buildNewTaskOptions(base).priority).toBeUndefined();
+    expect(buildNewTaskOptions({ ...base, priority: 4 }).priority).toBe(4);
+  });
+  test("leerer Titel faellt auf Mail zurueck, projectId wird uebernommen", () => {
+    const o = buildNewTaskOptions({ ...base, title: "   ", projectId: "p7" });
+    expect(o.content).toBe("Mail");
+    expect(o.project_id).toBe("p7");
   });
 });
 
