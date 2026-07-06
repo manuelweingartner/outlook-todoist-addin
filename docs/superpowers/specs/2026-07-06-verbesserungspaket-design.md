@@ -90,12 +90,13 @@ wieder und ersetzt die Warnung durch den Hinweis "Anhänge werden weggelassen.".
 Ist auch die Text-only-Variante über 25 MB (Riesen-Body), bleibt alles deaktiviert wie heute.
 
 **Umsetzung:**
-- `attachToTask.ts`: `prepareCurrentMail` wird intern auf
-  `buildPrepared(mail: MailData, includeAttachments: boolean): PreparedMail` abgestützt
-  (rein, testbar); die rohe `MailData` wird im Pane-State gehalten, damit der Button die
-  Text-only-Variante ohne zweites Office.js-Lesen bauen kann. Öffentliche Funktion
-  `prepareMail(mail: MailData, includeAttachments: boolean)` exportiert; `prepareCurrentMail`
-  bleibt als Convenience (liest + baut voll) erhalten.
+- `attachToTask.ts`: neue exportierte reine Funktion
+  `prepareMail(mail: MailData, includeAttachments: boolean): PreparedMail`;
+  `prepareCurrentMail` bleibt als Convenience erhalten und ruft `prepareMail(mail, true)`.
+  Die rohe `MailData` wird zusätzlich im Pane-State gehalten, damit der Button die
+  Text-only-Variante ohne zweites Office.js-Lesen bauen kann (dafür liefert eine neue
+  Funktion `readAndPrepareCurrentMail(): Promise<{ mail: MailData; prepared: PreparedMail }>`
+  beides; `prepareCurrentMail` delegiert darauf).
 - `taskpane.ts`: State `mailData: MailData | null`; Warnungs-Rendering mit Button;
   Hinweis-Text bei aktiver Text-only-Variante.
 
