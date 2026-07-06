@@ -30,15 +30,15 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 - `src/lib/settings.ts` - Token lesen/speichern (roamingSettings).
 - `src/lib/emlBuilder.ts` - `MailData` -> gültiges MIME (.eml). Reine Logik.
 - `src/lib/mailReader.ts` - Office.js-Item -> `MailData` (nur File-Anhänge).
-- `src/lib/todoist.ts` - **Unified API v1** (`api.todoist.com/api/v1`): getTasks/searchTasks (`/tasks/filter?query=`, paginiert -> `{results}`), uploadFile (`/uploads`), addComment (`/comments`, gibt Kommentar-id zurück), deleteComment, getProjects, createTask. `TodoistTask` trägt optional `priority`/`due`.
+- `src/lib/todoist.ts` - **Unified API v1** (`api.todoist.com/api/v1`): `getAllTasks` (Cursor-Pagination über `/tasks?limit=200`, folgt `next_cursor` bis zum Ende, Basis für Client-Suche + Vorschläge), uploadFile (`/uploads`), addComment (`/comments`, gibt Kommentar-id zurück), deleteComment, getProjects, createTask. `TodoistTask` trägt optional `priority`/`due`. (Die frühere serverseitige Suche `getTasks`/`searchTasks`/`tasksByQuery` wurde entfernt, siehe Status 2026-07-06.)
 - `src/lib/attachToTask.ts` - `prepareCurrentMail` (liest+baut .eml einmal, liefert sizeBytes/subject/commentText), `attachPreparedToTask` (Vorab-25MB-Check, upload, Kommentar, gibt id), `formatMailDate` (UTC-stabil). Kommentartext = Betreff (Datum).
-- `src/taskpane/taskLogic.ts` - Reine Logik: groupTasks (Heute/Überfällig), priorityColor, taskDeepLink, todayIso.
-- `src/taskpane/taskpane.{html,ts,css}` - UI im Todoist-Look (rot `#e44332`, Dark-Mode via prefers-color-scheme, self-contained CSS, kein Fluent-CDN). 5 Zustände (Onboarding/Skeleton/Liste/Leer/Inline-Anhängen). Features: Ein-Klick-Anhängen mit Inline-Haken + Rückgängig, Mail-Kontext-Kopf, Vorab-Grössenwarnung, Tastatur-Flow (Enter hängt obersten Treffer an), Projektnamen, In-Todoist-öffnen, Neuen-Task-aus-Mail. Trefferzeile zweizeilig: Titel als prominente Hauptzeile (`.task-main`), Projekt als kleine Unterzeile.
+- `src/taskpane/taskLogic.ts` - Reine Logik: groupTasks (Heute/Überfällig), priorityColor, taskDeepLink, todayIso, filterTasks (case-insensitive Client-Suche, UND-Verknüpfung über Titel + Projektname), dueTodayOrOverdue (repliziert den früheren Server-Filter client-seitig), extractMailKeywords/suggestTasks (Top-3-Vorschläge aus Betreff-/Body-Schlagwörtern der aktuellen Mail).
+- `src/taskpane/taskpane.{html,ts,css}` - UI im Todoist-Look (rot `#e44332`, Dark-Mode via prefers-color-scheme, self-contained CSS, kein Fluent-CDN). 5 Zustände (Onboarding/Skeleton/Liste/Leer/Inline-Anhängen). Features: Ein-Klick-Anhängen mit Inline-Haken + Rückgängig, Mail-Kontext-Kopf, Vorab-Grössenwarnung, Tastatur-Flow (Enter hängt obersten Treffer an), Projektnamen, In-Todoist-öffnen, Neuen-Task-aus-Mail, Vorschläge-Sektion (passende Tasks zur offenen Mail zuoberst) + Client-Suche (case-insensitiv über alle geladenen Tasks). Trefferzeile zweizeilig: Titel als prominente Hauptzeile (`.task-main`), Projekt als kleine Unterzeile.
 - `manifest.xml` (Dev, localhost:3000) / `manifest.prod.xml` (Prod, Pages-URL). **Redesign änderte das Manifest NICHT -> kein IT-Rollout nötig, Self-Deploy genügt.**
 
 ## Befehle
 
-- Tests: `npx jest` (39 Tests, ts-jest 29, jsdom).
+- Tests: `npx jest` (59 Tests, ts-jest 29, jsdom).
 - Build: `npm run build` (Production-Webpack -> `dist/`).
 - Manifest prüfen: `npx office-addin-manifest validate manifest.prod.xml`.
 - **Deploy: `npm run deploy`** (baut + setzt `.nojekyll` + published `dist/` nach `gh-pages` via gh-pages-Tool).
@@ -65,6 +65,17 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 
 ## Status / Gotchas
 
+- 2026-07-06: **Tote Server-Suche entfernt (Cleanup nach Suche+Vorschläge-Feature).**
+  `getTasks`/`searchTasks`/`tasksByQuery` aus `src/lib/todoist.ts` gelöscht, samt Tests.
+  Was war/ist der Stand: Task-Pane nutzt seit dem Suche-und-Vorschläge-Feature nur noch
+  `getAllTasks` (Cursor-Pagination, lädt jetzt ALLE Seiten statt vorher nur Seite 1),
+  case-insensitive Client-Suche (`filterTasks`) und Top-3-Vorschläge (`suggestTasks`)
+  aus Betreff-/Body-Schlagwörtern der offenen Mail. Warum entfernt: Todoists
+  Server-Suche (`/tasks/filter?query=`) matchte case-sensitiv, das ist der Grund
+  wieso überhaupt auf Client-Suche umgestellt wurde. Der "nacktes Array"-Defensivfall
+  wurde in die `getAllTasks`-Suite migriert (dort war er noch nicht abgedeckt), der
+  401-Fall existierte dort schon. 59 Tests grün, Build clean, kein Treffer mehr für
+  `getTasks`/`searchTasks` in `src/`.
 - 2026-06-30: **UX-Feinschliff (live deployed).** (1) Alle sichtbaren Task-Pane-Texte
   auf echte Umlaute umgestellt (Anhängen/hängen/öffnen/einfügen/für/Überfällig/Rückgängig/ungültig;
   `gross` bleibt Schweizer Deutsch, kein ß). (2) Trefferzeile umgebaut: Titel ist jetzt

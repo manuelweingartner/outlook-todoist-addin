@@ -43,15 +43,6 @@ function unwrap<T>(data: Paginated<T> | T[]): T[] {
   return Array.isArray(data) ? data : data.results ?? [];
 }
 
-async function tasksByQuery(token: string, query: string): Promise<TodoistTask[]> {
-  const res = await fetch(`${API}/tasks/filter?query=${encodeURIComponent(query)}`, { headers: auth(token) });
-  return unwrap<TodoistTask>(await (await ensureOk(res)).json());
-}
-
-export async function getTasks(token: string, query = "(today | overdue)"): Promise<TodoistTask[]> {
-  return tasksByQuery(token, query);
-}
-
 // Laedt ALLE offenen Tasks: v1 paginiert mit max. 200 pro Seite, wir folgen
 // next_cursor bis zum Ende. Basis fuer client-seitige Suche + Vorschlaege.
 export async function getAllTasks(token: string): Promise<TodoistTask[]> {
@@ -65,10 +56,6 @@ export async function getAllTasks(token: string): Promise<TodoistTask[]> {
     cursor = Array.isArray(data) ? null : data.next_cursor;
   } while (cursor);
   return all;
-}
-
-export async function searchTasks(token: string, query: string): Promise<TodoistTask[]> {
-  return tasksByQuery(token, `search: ${query}`);
 }
 
 export async function uploadFile(token: string, file: Blob, fileName: string): Promise<UploadedFile> {
