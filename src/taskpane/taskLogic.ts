@@ -28,11 +28,12 @@ export function priorityColor(priority?: number): string {
   }
 }
 
-// Web-Link statt Custom-URL-Schema: die Outlook-Webview blockt eigene Protokolle
-// (zeigt eine Verbotssymbol-Fehlerseite), daher hier bewusst der Web-Link, der
-// Browser/Web-App oeffnet.
+// Die Outlook-Webview blockt eigene Protokolle (todoist:// zeigt eine
+// Verbotssymbol-Fehlerseite). Deshalb zeigt der Link relativ auf unsere
+// Umleitungsseite: window.open oeffnet sie im System-Browser, und DER darf
+// todoist:// ausloesen (Desktop-Client), mit Web-App als Fallback.
 export function taskDeepLink(id: string): string {
-  return `https://app.todoist.com/app/task/${id}`;
+  return `open-task.html?id=${encodeURIComponent(id)}`;
 }
 
 // Client-seitige Suche: case-insensitiv, alle Woerter muessen matchen (UND).

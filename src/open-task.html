@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Todoist öffnen</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; font-size: 14px; padding: 24px; }
+    a { color: #e44332; }
+  </style>
+</head>
+<body>
+  <p>Todoist wird geöffnet...</p>
+  <p>Falls sich die Desktop-App nicht öffnet: <a id="web" href="https://app.todoist.com">Aufgabe im Browser öffnen</a></p>
+  <script>
+    // Diese Seite laeuft im System-Browser (nicht in der Outlook-Webview) und darf
+    // deshalb das todoist://-Protokoll ausloesen. Danach schliesst sie sich selbst;
+    // klappt das Schliessen nicht, bleibt der Web-Fallback-Link stehen.
+    var id = new URLSearchParams(window.location.search).get("id") || "";
+    var safe = /^[A-Za-z0-9_-]+$/.test(id) ? id : "";
+    if (safe) {
+      document.getElementById("web").href = "https://app.todoist.com/app/task/" + safe;
+      window.location.href = "todoist://task?id=" + safe;
+      setTimeout(function () { window.close(); }, 1500);
+    } else {
+      document.body.firstElementChild.textContent = "Keine gültige Task-Id übergeben.";
+    }
+  </script>
+</body>
+</html>

@@ -34,8 +34,8 @@ describe("priorityColor", () => {
 });
 
 describe("taskDeepLink", () => {
-  test("baut Web-Link (Webview blockt todoist://)", () => {
-    expect(taskDeepLink("t5")).toBe("https://app.todoist.com/app/task/t5");
+  test("zeigt relativ auf die Desktop-Umleitungsseite mit Task-Id", () => {
+    expect(taskDeepLink("t5")).toBe("open-task.html?id=t5");
   });
 });
 
