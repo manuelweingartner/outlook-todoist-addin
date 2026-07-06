@@ -1,4 +1,7 @@
 :root {
+  /* Ohne color-scheme rendert die WebView native Controls (Select-Popup, Scrollbars)
+     im Dark-Mode hell, waehrend der Text unsere helle Farbe erbt -> Optionen unsichtbar. */
+  color-scheme: light;
   --accent: #e44332;
   --accent-hover: #c93b2c;
   --bg: #ffffff;
@@ -12,6 +15,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     --bg: #1f1f1f; --bg-soft: #2a2a2a; --bg-hover: #333333;
     --text: #f0f0f0; --text-soft: #a0a0a0; --border: #3a3a3a;
     --ok: #4ec96f; --err: #ff6b6b;
