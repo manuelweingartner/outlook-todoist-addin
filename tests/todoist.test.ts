@@ -1,4 +1,4 @@
-import { getTasks, uploadFile, addComment, searchTasks, TodoistError, deleteComment, getProjects, createTask } from "../src/lib/todoist";
+import { getTasks, uploadFile, addComment, searchTasks, TodoistError, deleteComment, getProjects, createTask, getAllTasks } from "../src/lib/todoist";
 
 function mockFetch(status: number, json: unknown) {
   (global as any).fetch = jest.fn().mockResolvedValue({
@@ -113,5 +113,44 @@ describe("createTask", () => {
     expect(url).toBe("https://api.todoist.com/api/v1/tasks");
     expect(opts.method).toBe("POST");
     expect(JSON.parse(opts.body).content).toBe("Neuer Task");
+  });
+});
+
+describe("getAllTasks", () => {
+  function pageMock(pages: Array<{ results: unknown[]; next_cursor: string | null }>) {
+    const fn = jest.fn();
+    for (const p of pages) {
+      fn.mockResolvedValueOnce({ ok: true, status: 200, json: async () => p, text: async () => "" });
+    }
+    (global as any).fetch = fn;
+    return fn;
+  }
+
+  test("laedt eine Einzelseite", async () => {
+    const fn = pageMock([{ results: [{ id: "1", content: "A", project_id: "p" }], next_cursor: null }]);
+    const tasks = await getAllTasks("tok");
+    expect(tasks.map((t) => t.id)).toEqual(["1"]);
+    expect(fn).toHaveBeenCalledTimes(1);
+    const [url, opts] = fn.mock.calls[0];
+    expect(url).toBe("https://api.todoist.com/api/v1/tasks?limit=200");
+    expect(opts.headers.Authorization).toBe("Bearer tok");
+  });
+
+  test("folgt next_cursor ueber mehrere Seiten und konkateniert", async () => {
+    const fn = pageMock([
+      { results: [{ id: "1", content: "A", project_id: "p" }], next_cursor: "c2" },
+      { results: [{ id: "2", content: "B", project_id: "p" }], next_cursor: null },
+    ]);
+    const tasks = await getAllTasks("tok");
+    expect(tasks.map((t) => t.id)).toEqual(["1", "2"]);
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(fn.mock.calls[1][0]).toBe("https://api.todoist.com/api/v1/tasks?limit=200&cursor=c2");
+  });
+
+  test("wirft TodoistError bei 401", async () => {
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: false, status: 401, json: async () => ({}), text: async () => "unauthorized",
+    });
+    await expect(getAllTasks("bad")).rejects.toBeInstanceOf(TodoistError);
   });
 });

@@ -52,6 +52,21 @@ export async function getTasks(token: string, query = "(today | overdue)"): Prom
   return tasksByQuery(token, query);
 }
 
+// Laedt ALLE offenen Tasks: v1 paginiert mit max. 200 pro Seite, wir folgen
+// next_cursor bis zum Ende. Basis fuer client-seitige Suche + Vorschlaege.
+export async function getAllTasks(token: string): Promise<TodoistTask[]> {
+  const all: TodoistTask[] = [];
+  let cursor: string | null | undefined;
+  do {
+    const url = `${API}/tasks?limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+    const res = await fetch(url, { headers: auth(token) });
+    const data: Paginated<TodoistTask> | TodoistTask[] = await (await ensureOk(res)).json();
+    all.push(...unwrap(data));
+    cursor = Array.isArray(data) ? null : data.next_cursor;
+  } while (cursor);
+  return all;
+}
+
 export async function searchTasks(token: string, query: string): Promise<TodoistTask[]> {
   return tasksByQuery(token, `search: ${query}`);
 }
