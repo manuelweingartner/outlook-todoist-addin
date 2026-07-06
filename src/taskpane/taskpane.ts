@@ -1,12 +1,13 @@
 import { getToken, setToken } from "../lib/settings";
-import { getTasks, searchTasks, getProjects, createTask, deleteComment, TodoistTask } from "../lib/todoist";
+import { getAllTasks, getProjects, createTask, deleteComment, TodoistTask } from "../lib/todoist";
 import { prepareCurrentMail, attachPreparedToTask, PreparedMail } from "../lib/attachToTask";
-import { groupTasks, priorityColor, taskDeepLink, todayIso } from "./taskLogic";
+import { groupTasks, priorityColor, taskDeepLink, todayIso, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks } from "./taskLogic";
 
 let busy = false;
 let searchWired = false;
 let prepared: PreparedMail | null = null;
 let projectNames: Record<string, string> = {};
+let allTasks: TodoistTask[] = [];
 
 function $(id: string): HTMLElement { return document.getElementById(id)!; }
 
@@ -91,17 +92,16 @@ function makeRow(task: TodoistTask): HTMLLIElement {
   return li;
 }
 
-function renderTasks(tasks: TodoistTask[]): void {
+function renderSections(sections: Array<[string, TodoistTask[]]>, emptyText: string): void {
   setSkeleton(false);
   const groups = $("task-groups");
   groups.innerHTML = "";
   const empty = $("empty");
 
-  if (tasks.length === 0) { empty.hidden = false; return; }
+  const total = sections.reduce((n, [, list]) => n + list.length, 0);
+  if (total === 0) { empty.textContent = emptyText; empty.hidden = false; return; }
   empty.hidden = true;
 
-  const { overdue, today } = groupTasks(tasks, todayIso(new Date()));
-  const sections: Array<[string, TodoistTask[]]> = [["Überfällig", overdue], ["Heute", today]];
   for (const [label, list] of sections) {
     if (list.length === 0) continue;
     const h = document.createElement("p");
@@ -113,6 +113,21 @@ function renderTasks(tasks: TodoistTask[]): void {
     for (const task of list) ul.appendChild(makeRow(task));
     groups.appendChild(ul);
   }
+}
+
+// Standardansicht (leeres Suchfeld): Vorschlaege zuoberst, dann Ueberfaellig/Heute.
+// Vorgeschlagene Tasks tauchen nicht doppelt in den Datumsgruppen auf.
+function renderDefaultView(): void {
+  const kw = extractMailKeywords(prepared?.subject ?? "", prepared?.bodyText ?? "");
+  const suggestions = suggestTasks(allTasks, kw);
+  const suggestedIds = new Set(suggestions.map((t) => t.id));
+  const today = todayIso(new Date());
+  const base = dueTodayOrOverdue(allTasks, today).filter((t) => !suggestedIds.has(t.id));
+  const { overdue, today: todayList } = groupTasks(base, today);
+  renderSections(
+    [["Vorschläge", suggestions], ["Überfällig", overdue], ["Heute", todayList]],
+    "Keine Tasks für heute.",
+  );
 }
 
 async function attach(task: TodoistTask, btn: HTMLButtonElement, state: HTMLElement, li: HTMLElement): Promise<void> {
@@ -164,10 +179,11 @@ async function loadTasks(token: string): Promise<void> {
   setSkeleton(true);
   try {
     const [tasks] = await Promise.all([
-      getTasks(token),
+      getAllTasks(token),
       loadProjects(token),
     ]);
-    renderTasks(tasks);
+    allTasks = tasks;
+    renderDefaultView();
   } catch (e) {
     setSkeleton(false);
     setStatus(`Token ungültig oder Abruf fehlgeschlagen: ${(e as Error).message}`, "err", e);
@@ -185,22 +201,10 @@ async function loadProjects(token: string): Promise<void> {
 }
 
 function wireSearch(): void {
-  let timer: number | undefined;
   ($("search") as HTMLInputElement).addEventListener("input", (e) => {
     const q = (e.target as HTMLInputElement).value.trim();
-    const token = getToken();
-    if (!token) return;
-    window.clearTimeout(timer);
-    timer = window.setTimeout(async () => {
-      setSkeleton(true);
-      try {
-        const tasks = q ? await searchTasks(token, q) : await getTasks(token);
-        renderTasks(tasks);
-      } catch (err) {
-        setSkeleton(false);
-        setStatus(`Suche fehlgeschlagen: ${(err as Error).message}`, "err", err);
-      }
-    }, 300);
+    if (!q) { renderDefaultView(); return; }
+    renderSections([["Treffer", filterTasks(allTasks, q, projectNames)]], "Keine Treffer.");
   });
 
   ($("search") as HTMLInputElement).addEventListener("keydown", (e) => {
