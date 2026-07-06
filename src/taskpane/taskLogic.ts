@@ -28,9 +28,11 @@ export function priorityColor(priority?: number): string {
   }
 }
 
-// Oeffnet den installierten Todoist-Desktop-Client (URL-Schema), nicht den Browser.
+// Web-Link statt Custom-URL-Schema: die Outlook-Webview blockt eigene Protokolle
+// (zeigt eine Verbotssymbol-Fehlerseite), daher hier bewusst der Web-Link, der
+// Browser/Web-App oeffnet.
 export function taskDeepLink(id: string): string {
-  return `todoist://task?id=${id}`;
+  return `https://app.todoist.com/app/task/${id}`;
 }
 
 // Client-seitige Suche: case-insensitiv, alle Woerter muessen matchen (UND).

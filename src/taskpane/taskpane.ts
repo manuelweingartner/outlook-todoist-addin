@@ -15,10 +15,7 @@ let selectedIndex = 0;
 function $(id: string): HTMLElement { return document.getElementById(id)!; }
 
 function openExternal(url: string): void {
-  const a = document.createElement("a");
-  a.href = url;
-  a.rel = "noopener";
-  a.click();
+  window.open(url, "_blank", "noopener");
 }
 
 function visibleRows(): HTMLButtonElement[] {
@@ -314,6 +311,14 @@ function fillProjectSelect(): void {
     o.textContent = name;
     sel.appendChild(o);
   }
+  if (sel.options.length === 0) {
+    // Projekte (noch) nicht geladen: leerer value -> projectId null -> Todoist
+    // legt in der Inbox an. So ist das Dropdown nie leer, Verhalten bleibt ehrlich.
+    const fallback = document.createElement("option");
+    fallback.value = "";
+    fallback.textContent = "Inbox";
+    sel.appendChild(fallback);
+  }
 }
 
 function resetNewTaskForm(): void {
@@ -331,11 +336,15 @@ function wireNewTask(): void {
   const form = $("new-task-form") as HTMLFormElement;
   btn.hidden = false;
 
-  btn.onclick = () => {
+  btn.onclick = async () => {
     if (tooLarge() || !prepared) return;
     form.hidden = !form.hidden;
     if (!form.hidden) {
       ($("nt-title") as HTMLInputElement).value = prepared.subject || "";
+      if (Object.keys(projectNames).length === 0) {
+        const token = getToken();
+        if (token) await loadProjects(token);
+      }
       fillProjectSelect();
       resetNewTaskForm();
       ($("nt-title") as HTMLInputElement).focus();
