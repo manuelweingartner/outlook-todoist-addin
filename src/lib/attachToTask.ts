@@ -48,13 +48,33 @@ export function formatMailDate(utc: string): string {
   return `${dd}.${mm}.${d.getUTCFullYear()}`;
 }
 
-export async function prepareCurrentMail(): Promise<PreparedMail> {
-  const mail = await readCurrentMail();
-  const { blob, fileName } = emlBlobFor(mail);
-  const datePart = formatMailDate(mail.date);
-  const commentText = datePart ? `${mail.subject} (${datePart})` : mail.subject;
+// "Anzeige Name <adresse>" -> "Anzeige Name"; ohne Anzeigename -> Adresse; leer -> "".
+export function senderName(from: string): string {
+  const m = from.match(/^(.*?)\s*<([^>]*)>$/);
+  if (m) return m[1].trim() || m[2].trim();
+  return from.trim();
+}
+
+function buildCommentText(subject: string, datePart: string, name: string): string {
+  const meta = [datePart, name ? `von ${name}` : ""].filter(Boolean).join(", ");
+  return meta ? `${subject} (${meta})` : subject;
+}
+
+export function prepareMail(mail: MailData, includeAttachments: boolean): PreparedMail {
+  const effective = includeAttachments ? mail : { ...mail, attachments: [] };
+  const { blob, fileName } = emlBlobFor(effective);
+  const commentText = buildCommentText(mail.subject, formatMailDate(mail.date), senderName(mail.from));
   const bodyText = htmlToText(mail.htmlBody).slice(0, 2000);
   return { blob, fileName, sizeBytes: blob.size, subject: mail.subject, commentText, bodyText };
+}
+
+export async function readAndPrepareCurrentMail(): Promise<{ mail: MailData; prepared: PreparedMail }> {
+  const mail = await readCurrentMail();
+  return { mail, prepared: prepareMail(mail, true) };
+}
+
+export async function prepareCurrentMail(): Promise<PreparedMail> {
+  return (await readAndPrepareCurrentMail()).prepared;
 }
 
 export async function attachPreparedToTask(token: string, taskId: string, prepared: PreparedMail): Promise<string> {

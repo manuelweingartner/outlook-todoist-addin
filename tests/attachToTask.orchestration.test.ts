@@ -19,7 +19,7 @@ const baseMail: MailData = {
 describe("attachCurrentMailToTask", () => {
   beforeEach(() => jest.clearAllMocks());
 
-  test("happy path: Kommentartext = Betreff (Datum), gibt id zurueck", async () => {
+  test("happy path: Kommentartext = Betreff (Datum, von Name), gibt id zurueck", async () => {
     (readCurrentMail as jest.Mock).mockResolvedValue(baseMail);
     (uploadFile as jest.Mock).mockResolvedValue({ file_url: "u", file_name: "S.eml", file_type: "message/rfc822" });
     (addComment as jest.Mock).mockResolvedValue("c1");
@@ -31,14 +31,14 @@ describe("attachCurrentMailToTask", () => {
     expect(tok).toBe("tok");
     expect(taskId).toBe("task1");
     expect(file.file_url).toBe("u");
-    expect(content).toBe("S (01.01.2026)");
+    expect(content).toBe("S (01.01.2026, von a@b.ch)");
   });
 
   test("prepareCurrentMail liefert sizeBytes + commentText", async () => {
     (readCurrentMail as jest.Mock).mockResolvedValue(baseMail);
     const p = await prepareCurrentMail();
     expect(p.subject).toBe("S");
-    expect(p.commentText).toBe("S (01.01.2026)");
+    expect(p.commentText).toBe("S (01.01.2026, von a@b.ch)");
     expect(p.sizeBytes).toBeGreaterThan(0);
   });
 

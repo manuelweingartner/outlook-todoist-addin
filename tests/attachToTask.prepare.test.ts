@@ -1,7 +1,19 @@
-import { formatMailDate, htmlToText, prepareCurrentMail } from "../src/lib/attachToTask";
+import { formatMailDate, htmlToText, prepareCurrentMail, senderName, prepareMail } from "../src/lib/attachToTask";
 import { readCurrentMail } from "../src/lib/mailReader";
+import { MailData } from "../src/lib/emlBuilder";
 
 jest.mock("../src/lib/mailReader");
+
+const mailFixture = (over: Partial<MailData> = {}): MailData => ({
+  subject: "Rechnung Q3",
+  from: "Joel Willi <joel@wowoni.ch>",
+  to: [],
+  cc: [],
+  date: "Sun, 05 Jul 2026 10:00:00 GMT",
+  htmlBody: "<p>Hallo</p>",
+  attachments: [{ name: "a.pdf", contentType: "application/pdf", base64: "QUJD" }],
+  ...over,
+});
 
 describe("htmlToText", () => {
   test("strippt Tags und kollabiert Whitespace", () => {
@@ -45,5 +57,47 @@ describe("formatMailDate", () => {
   });
   test("kurz nach Mitternacht UTC bleibt am gleichen Tag (kein Timezone-Drift)", () => {
     expect(formatMailDate("Mon, 05 Jan 2026 00:30:00 +0000")).toBe("05.01.2026");
+  });
+});
+
+describe("senderName", () => {
+  test("Name <adresse> liefert den Namen", () => {
+    expect(senderName("Joel Willi <joel@wowoni.ch>")).toBe("Joel Willi");
+  });
+  test("nur Adresse liefert die Adresse", () => {
+    expect(senderName("joel@wowoni.ch")).toBe("joel@wowoni.ch");
+  });
+  test("leer liefert leer", () => {
+    expect(senderName("")).toBe("");
+  });
+});
+
+describe("prepareMail commentText", () => {
+  test("Betreff (Datum, von Name)", () => {
+    expect(prepareMail(mailFixture(), true).commentText).toBe("Rechnung Q3 (05.07.2026, von Joel Willi)");
+  });
+  test("ohne Absender: Betreff (Datum)", () => {
+    expect(prepareMail(mailFixture({ from: "" }), true).commentText).toBe("Rechnung Q3 (05.07.2026)");
+  });
+  test("ohne Datum: Betreff (von Name)", () => {
+    expect(prepareMail(mailFixture({ date: "kaputt" }), true).commentText).toBe("Rechnung Q3 (von Joel Willi)");
+  });
+  test("ohne beides: nur Betreff", () => {
+    expect(prepareMail(mailFixture({ from: "", date: "kaputt" }), true).commentText).toBe("Rechnung Q3");
+  });
+});
+
+describe("prepareMail ohne Anhaenge", () => {
+  test("laesst Datei-Anhaenge weg und wird kleiner", async () => {
+    const full = prepareMail(mailFixture(), true);
+    const textOnly = prepareMail(mailFixture(), false);
+    expect(textOnly.sizeBytes).toBeLessThan(full.sizeBytes);
+    const eml = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsText(textOnly.blob);
+    });
+    expect(eml).not.toContain("a.pdf");
+    expect(eml).toContain("Rechnung Q3");
   });
 });
