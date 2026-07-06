@@ -38,7 +38,7 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 
 ## Befehle
 
-- Tests: `npx jest` (59 Tests, ts-jest 29, jsdom).
+- Tests: `npx jest` (85 Tests, ts-jest 29, jsdom).
 - Build: `npm run build` (Production-Webpack -> `dist/`).
 - Manifest prüfen: `npx office-addin-manifest validate manifest.prod.xml`.
 - **Deploy: `npm run deploy`** (baut + setzt `.nojekyll` + published `dist/` nach `gh-pages` via gh-pages-Tool).
