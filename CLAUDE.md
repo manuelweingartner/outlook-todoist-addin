@@ -66,17 +66,17 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 ## Status / Gotchas
 
 - 2026-07-06: **Verbesserungspaket (5 Features, Branch `feat/verbesserungspaket`).**
-  (1) Pfeiltasten-Navigation in der Trefferliste (`moveSelection`, wrapt an den Raendern,
-  Enter haengt die aktuell markierte Zeile an, nicht mehr fix die oberste). (2) Neues-Task-
-  Formular direkt aus der Mail (Titel/Projekt/Prioritaet/Faelligkeits-Chips, `buildNewTaskOptions`
-  validiert, erstellt Task + haengt Mail in einem Zug an). (3) Ablage-Kommentar traegt jetzt
+  (1) Pfeiltasten-Navigation in der Trefferliste (`moveSelection`, wrapt an den Rändern,
+  Enter hängt die aktuell markierte Zeile an, nicht mehr fix die oberste). (2) Neues-Task-
+  Formular direkt aus der Mail (Titel/Projekt/Priorität/Fälligkeits-Chips, `buildNewTaskOptions`
+  validiert, erstellt Task + hängt Mail in einem Zug an). (3) Ablage-Kommentar trägt jetzt
   den Absendernamen (`senderName`, Format "Betreff (Datum, von Name)"). (4) Client-Suche
-  versteht `#projekt`-Syntax (matcht nur den Projektnamen, normale Woerter weiter Titel ODER
+  versteht `#projekt`-Syntax (matcht nur den Projektnamen, normale Wörter weiter Titel ODER
   Projekt). (5) Robustheit: `getAllTasks` hat eine `MAX_PAGES`-Sicherung gegen Endlosschleifen,
-  Retry-Banner bei fehlgeschlagenem Task-Load, und ein Text-only-Fallback fuer uebergrosse
+  Retry-Banner bei fehlgeschlagenem Task-Load, und ein Text-only-Fallback für übergrosse
   Mails (`readAndPrepareCurrentMail`/`prepareMail` trennen Mail-Rohdaten von der gebauten
   .eml, die Grössenwarnung bietet bei >25 MB einen "Ohne Anhänge anhängen"-Button, der die
-  Mail ohne Anhaenge neu baut; ist der Body allein schon zu gross, bleibt Anhaengen deaktiviert
+  Mail ohne Anhänge neu baut; ist der Body allein schon zu gross, bleibt Anhängen deaktiviert
   mit entsprechendem Hinweis). 85 Tests grün, Build clean, `grep "25 \* 1024"` in
   `src/taskpane/taskpane.ts` liefert keine Treffer mehr (nur noch `MAX_BYTES`).
 - 2026-07-06: **Tote Server-Suche entfernt (Cleanup nach Suche+Vorschläge-Feature).**
