@@ -278,6 +278,16 @@ function fillProjectSelect(): void {
   }
 }
 
+function resetNewTaskForm(): void {
+  ntPriority = 1;
+  ntChip = "none";
+  ($("nt-due-text") as HTMLInputElement).value = "";
+  const prioDefault = $("nt-prio").querySelector<HTMLButtonElement>('button[data-p="1"]');
+  if (prioDefault) markActive($("nt-prio"), prioDefault);
+  const chipDefault = $("nt-chips").querySelector<HTMLButtonElement>('button[data-chip="none"]');
+  if (chipDefault) markActive($("nt-chips"), chipDefault);
+}
+
 function wireNewTask(): void {
   const btn = $("new-task") as HTMLButtonElement;
   const form = $("new-task-form") as HTMLFormElement;
@@ -289,6 +299,7 @@ function wireNewTask(): void {
     if (!form.hidden) {
       ($("nt-title") as HTMLInputElement).value = prepared.subject || "";
       fillProjectSelect();
+      resetNewTaskForm();
       ($("nt-title") as HTMLInputElement).focus();
     }
   };
@@ -310,6 +321,7 @@ function wireNewTask(): void {
     if (!token) { showTokenSection(); return; }
     busy = true;
     ($("nt-create") as HTMLButtonElement).disabled = true;
+    ($("nt-cancel") as HTMLButtonElement).disabled = true;
     setStatus("Erstelle Task...", "");
     try {
       const opts = buildNewTaskOptions({
@@ -330,6 +342,7 @@ function wireNewTask(): void {
     } finally {
       busy = false;
       ($("nt-create") as HTMLButtonElement).disabled = false;
+      ($("nt-cancel") as HTMLButtonElement).disabled = false;
     }
   };
 }
