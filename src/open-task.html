@@ -17,10 +17,17 @@
     // Diese Seite laeuft im System-Browser (nicht in der Outlook-Webview) und darf
     // deshalb das todoist://-Protokoll ausloesen. Danach schliesst sie sich selbst;
     // klappt das Schliessen nicht, bleibt der Web-Fallback-Link stehen.
-    var id = new URLSearchParams(window.location.search).get("id") || "";
-    var safe = /^[A-Za-z0-9_-]+$/.test(id) ? id : "";
+    // id = alte numerische Id (einzige, die todoist://task?id= im Desktop-Client
+    // versteht), web = neue alphanumerische Id fuer den Web-App-Link. Fehlt web,
+    // dient id fuer beides (Fallback, wenn das Id-Mapping nicht verfuegbar war).
+    var params = new URLSearchParams(window.location.search);
+    var idOk = function (v) { return /^[A-Za-z0-9_-]+$/.test(v); };
+    var id = params.get("id") || "";
+    var web = params.get("web") || "";
+    var safe = idOk(id) ? id : "";
+    var safeWeb = idOk(web) ? web : safe;
     if (safe) {
-      document.getElementById("web").href = "https://app.todoist.com/app/task/" + safe;
+      document.getElementById("web").href = "https://app.todoist.com/app/task/" + safeWeb;
       window.location.href = "todoist://task?id=" + safe;
       setTimeout(function () { window.close(); }, 1500);
     } else {

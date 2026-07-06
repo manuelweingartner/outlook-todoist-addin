@@ -32,8 +32,11 @@ export function priorityColor(priority?: number): string {
 // Verbotssymbol-Fehlerseite). Deshalb zeigt der Link relativ auf unsere
 // Umleitungsseite: window.open oeffnet sie im System-Browser, und DER darf
 // todoist:// ausloesen (Desktop-Client), mit Web-App als Fallback.
-export function taskDeepLink(id: string): string {
-  return `open-task.html?id=${encodeURIComponent(id)}`;
+// appId = alte numerische Id (einzige, die todoist://task?id= versteht),
+// webId = neue alphanumerische Id fuer den Web-Fallback-Link.
+export function taskDeepLink(appId: string, webId?: string): string {
+  const web = webId && webId !== appId ? `&web=${encodeURIComponent(webId)}` : "";
+  return `open-task.html?id=${encodeURIComponent(appId)}${web}`;
 }
 
 // Client-seitige Suche: case-insensitiv, alle Woerter muessen matchen (UND).

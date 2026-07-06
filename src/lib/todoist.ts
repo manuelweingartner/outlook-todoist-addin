@@ -80,6 +80,28 @@ export async function getAllTasks(token: string): Promise<TodoistTask[]> {
   return all;
 }
 
+// Das todoist://task?id=-Scheme des Desktop-Clients versteht nur die ALTEN
+// numerischen Ids; die v1-API liefert aber die neuen alphanumerischen. Dieser
+// Endpoint uebersetzt sie. Fehler sind hier bewusst nicht user-sichtbar: ohne
+// Mapping faellt der Deep-Link auf die neue Id zurueck (App oeffnet, springt
+// nur nicht zum Task) und der Web-Fallback funktioniert weiterhin.
+const ID_MAPPING_CHUNK = 100;
+
+export async function getOldTaskIds(token: string, ids: string[]): Promise<Record<string, string>> {
+  const map: Record<string, string> = {};
+  for (let i = 0; i < ids.length; i += ID_MAPPING_CHUNK) {
+    const chunk = ids.slice(i, i + ID_MAPPING_CHUNK);
+    try {
+      const res = await fetch(`${API}/id_mappings/tasks/${chunk.map(encodeURIComponent).join(",")}`, { headers: auth(token) });
+      const data: Array<{ old_id: string | null; new_id: string | null }> = await (await ensureOk(res)).json();
+      for (const m of data) if (m.new_id && m.old_id) map[m.new_id] = m.old_id;
+    } catch (e) {
+      console.error("getOldTaskIds: Id-Mapping fehlgeschlagen, Deep-Links nutzen die neue Id.", e);
+    }
+  }
+  return map;
+}
+
 export async function uploadFile(token: string, file: Blob, fileName: string): Promise<UploadedFile> {
   const form = new FormData();
   form.append("file_name", fileName);
