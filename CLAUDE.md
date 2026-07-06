@@ -66,7 +66,27 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 
 ## Status / Gotchas
 
-- 2026-07-06 spät (2): **Deep-Link-Fix (`35f3fa5`, deployed): todoist://task?id= braucht die ALTE numerische Id.**
+- 2026-07-06 spät (3): **ECHTE Ursache gefunden (Instrumentierung via Todoist-App-Log + PrintWindow).**
+  Das Todoist-App-Log (`%APPDATA%/Todoist/logs/todoist-main.log`) protokolliert jeden
+  empfangenen Deeplink ("Received deeplink: ..."). Damit verifiziert:
+  (1) `todoist://task?id=<NEUE-alphanumerische-v1-Id>` oeffnet die KORREKTE Task (per
+  PrintWindow-Screenshot bestaetigt: Task-Detail "Besprechung mit SSU" offen). Die neue
+  Id ist also richtig; die alte numerische lehnt der Client ab (kein Foreground) -> der
+  gestrige "35f3fa5"-Fix (id_mappings -> numerisch) war KOMPLETT FALSCH und wurde
+  revertiert (getOldTaskIds + &web=-Param + taskDeepLink-2-Arg alles raus).
+  (2) Der WAHRE Bug: die Redirect-Seite feuerte `todoist://` automatisch beim Load UND
+  rief nach 1.5s `window.close()` auf. Chrome zeigt beim ersten externen Protokoll-Start
+  pro Origin einen Bestaetigungsdialog; das Selbst-Schliessen killte den Dialog, bevor der
+  Nutzer bestaetigen konnte -> App-Log blieb bei Button-Klicks LEER (kein Deeplink kam an).
+  Beweis: Auto-Fire ohne window.close lieferte den Deeplink sofort; mit window.close/Live-
+  Seite kam nichts. Fix: `open-task.html` ruft KEIN window.close mehr auf und zeigt einen
+  prominenten Klick-Button "Task in Todoist öffnen" (Nutzergeste oeffnet zuverlaessig,
+  Manuel bestaetigt: "mit Klick öffnet sich die Aufgabe") + Hinweis auf den Browser-Dialog.
+  **GOTCHA 5: Protokoll-Redirect-Seiten NIE per window.close() selbst schliessen - das
+  bricht Chromes Erlaubnis-Dialog ab. Auto-Fire versuchen + Klick-Button stehen lassen.**
+  **GOTCHA 6: Zum Debuggen von todoist://-Deeplinks das App-Log tailen; es zeigt genau,
+  welche URL ankam und ob sie "handled" oder "Cannot handle" wurde.**
+- 2026-07-06 spät (2, REVERTIERT): ~~Deep-Link-Fix (`35f3fa5`): todoist://task?id= braucht die ALTE numerische Id.~~ Falsch, siehe oben.
   Symptom: Desktop-App öffnete, sprang aber nicht zum Task. Die v1-API liefert neue
   alphanumerische Ids, das URL-Scheme des Desktop-Clients versteht nur die alten
   numerischen (Doku-Beispiele durchweg numerisch; Übersetzung via

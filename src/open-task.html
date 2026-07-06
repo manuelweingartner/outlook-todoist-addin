@@ -6,32 +6,47 @@
   <title>Todoist öffnen</title>
   <style>
     :root { color-scheme: light dark; }
-    body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; font-size: 14px; padding: 24px; }
-    a { color: #e44332; }
+    body { font-family: "Segoe UI", system-ui, -apple-system, sans-serif; font-size: 15px; padding: 32px; line-height: 1.5; }
+    .btn {
+      display: inline-block; margin: 8px 0; padding: 10px 18px; border-radius: 6px;
+      background: #e44332; color: #fff; text-decoration: none; font-weight: 600;
+    }
+    .muted { color: #888; font-size: 13px; }
+    a.web { color: #e44332; }
   </style>
 </head>
 <body>
-  <p>Todoist wird geöffnet...</p>
-  <p>Falls sich die Desktop-App nicht öffnet: <a id="web" href="https://app.todoist.com">Aufgabe im Browser öffnen</a></p>
+  <p id="status">Todoist wird geöffnet...</p>
+  <p><a id="app" class="btn" href="#">Task in Todoist öffnen</a></p>
+  <p class="muted">Beim ersten Mal fragt der Browser, ob Todoist geöffnet werden darf.
+     Bitte bestätigen (und optional "Immer erlauben" wählen).</p>
+  <p class="muted">Klappt das nicht: <a id="web" class="web" href="https://app.todoist.com">im Browser öffnen</a></p>
   <script>
     // Diese Seite laeuft im System-Browser (nicht in der Outlook-Webview) und darf
-    // deshalb das todoist://-Protokoll ausloesen. Danach schliesst sie sich selbst;
-    // klappt das Schliessen nicht, bleibt der Web-Fallback-Link stehen.
-    // id = alte numerische Id (einzige, die todoist://task?id= im Desktop-Client
-    // versteht), web = neue alphanumerische Id fuer den Web-App-Link. Fehlt web,
-    // dient id fuer beides (Fallback, wenn das Id-Mapping nicht verfuegbar war).
+    // deshalb das todoist://-Protokoll ausloesen. Die Task-Id ist die neue
+    // alphanumerische v1-Id; genau die versteht todoist://task?id= im Desktop-Client
+    // (per App-Log verifiziert, oeffnet die korrekte Task). Die alte numerische Id
+    // lehnt der Client ab - deshalb KEINE Id-Uebersetzung.
+    //
+    // WICHTIG: NICHT automatisch window.close() aufrufen. Chrome zeigt beim ersten
+    // Mal einen Bestaetigungsdialog ("todoist-Link oeffnen?"); schliesst sich die
+    // Seite selbst, verschwindet der Dialog bevor der Nutzer bestaetigen kann und
+    // die App wird nie erreicht. Stattdessen versuchen wir das Auto-Oeffnen und
+    // lassen einen echten Klick-Button stehen (Nutzergeste oeffnet zuverlaessig).
     var params = new URLSearchParams(window.location.search);
     var idOk = function (v) { return /^[A-Za-z0-9_-]+$/.test(v); };
     var id = params.get("id") || "";
-    var web = params.get("web") || "";
     var safe = idOk(id) ? id : "";
-    var safeWeb = idOk(web) ? web : safe;
     if (safe) {
-      document.getElementById("web").href = "https://app.todoist.com/app/task/" + safeWeb;
-      window.location.href = "todoist://task?id=" + safe;
-      setTimeout(function () { window.close(); }, 1500);
+      var appUrl = "todoist://task?id=" + safe;
+      document.getElementById("app").href = appUrl;
+      document.getElementById("web").href = "https://app.todoist.com/app/task/" + safe;
+      // Auto-Versuch (klappt, sobald der Nutzer todoist:// einmal erlaubt hat).
+      window.location.href = appUrl;
     } else {
-      document.body.firstElementChild.textContent = "Keine gültige Task-Id übergeben.";
+      document.getElementById("status").textContent = "Keine gültige Task-Id übergeben.";
+      var appBtn = document.getElementById("app");
+      if (appBtn) appBtn.style.display = "none";
     }
   </script>
 </body>

@@ -1,4 +1,4 @@
-import { uploadFile, addComment, TodoistError, deleteComment, getProjects, createTask, getAllTasks, isAuthError, getOldTaskIds } from "../src/lib/todoist";
+import { uploadFile, addComment, TodoistError, deleteComment, getProjects, createTask, getAllTasks, isAuthError } from "../src/lib/todoist";
 
 function mockFetch(status: number, json: unknown) {
   (global as any).fetch = jest.fn().mockResolvedValue({
@@ -112,66 +112,6 @@ describe("getAllTasks maxPages", () => {
     const tasks = await getAllTasks("tok");
     expect((global as any).fetch).toHaveBeenCalledTimes(50);
     expect(tasks).toHaveLength(50);
-    expect(errSpy).toHaveBeenCalled();
-    errSpy.mockRestore();
-  });
-});
-
-describe("getOldTaskIds", () => {
-  test("liest /id_mappings/tasks/<ids> und liefert Map neue-Id -> alte Id", async () => {
-    mockFetch(200, [
-      { old_id: "918273645", new_id: "6VfWjjjFg2xqX6Pa" },
-      { old_id: "111222333", new_id: "6WMVPf8Hm8JP6mC8" },
-    ]);
-    const map = await getOldTaskIds("tok", ["6VfWjjjFg2xqX6Pa", "6WMVPf8Hm8JP6mC8"]);
-    expect(map).toEqual({ "6VfWjjjFg2xqX6Pa": "918273645", "6WMVPf8Hm8JP6mC8": "111222333" });
-    const [url, opts] = (global as any).fetch.mock.calls[0];
-    expect(url).toBe("https://api.todoist.com/api/v1/id_mappings/tasks/6VfWjjjFg2xqX6Pa,6WMVPf8Hm8JP6mC8");
-    expect(opts.headers.Authorization).toBe("Bearer tok");
-  });
-
-  test("ueberspringt Eintraege ohne old_id oder new_id", async () => {
-    mockFetch(200, [
-      { old_id: null, new_id: "a1" },
-      { old_id: "9", new_id: null },
-      { old_id: "8", new_id: "b2" },
-    ]);
-    const map = await getOldTaskIds("tok", ["a1", "b2"]);
-    expect(map).toEqual({ b2: "8" });
-  });
-
-  test("chunked bei mehr als 100 Ids in mehrere Aufrufe", async () => {
-    (global as any).fetch = jest.fn().mockResolvedValue({
-      ok: true, status: 200, json: async () => [], text: async () => "",
-    });
-    const ids = Array.from({ length: 250 }, (_, i) => `id${i}`);
-    await getOldTaskIds("tok", ids);
-    expect((global as any).fetch).toHaveBeenCalledTimes(3);
-    const firstUrl = (global as any).fetch.mock.calls[0][0] as string;
-    expect(firstUrl.split(",")).toHaveLength(100);
-  });
-
-  test("liefert bei leerer Id-Liste {} ohne Fetch", async () => {
-    (global as any).fetch = jest.fn();
-    const map = await getOldTaskIds("tok", []);
-    expect(map).toEqual({});
-    expect((global as any).fetch).not.toHaveBeenCalled();
-  });
-
-  test("faellt bei API-Fehler auf {} zurueck und loggt (Deep-Link nutzt dann die neue Id)", async () => {
-    mockFetch(500, { error: "boom" });
-    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-    const map = await getOldTaskIds("tok", ["a1"]);
-    expect(map).toEqual({});
-    expect(errSpy).toHaveBeenCalled();
-    errSpy.mockRestore();
-  });
-
-  test("faellt bei Netzwerkfehler auf {} zurueck und loggt", async () => {
-    (global as any).fetch = jest.fn().mockRejectedValue(new TypeError("Failed to fetch"));
-    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
-    const map = await getOldTaskIds("tok", ["a1"]);
-    expect(map).toEqual({});
     expect(errSpy).toHaveBeenCalled();
     errSpy.mockRestore();
   });

@@ -1,5 +1,5 @@
 import { getToken, setToken } from "../lib/settings";
-import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, getOldTaskIds, TodoistTask } from "../lib/todoist";
+import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, TodoistTask } from "../lib/todoist";
 import { readAndPrepareCurrentMail, prepareMail, attachPreparedToTask, PreparedMail, MAX_BYTES } from "../lib/attachToTask";
 import { MailData } from "../lib/emlBuilder";
 import { groupTasks, priorityColor, taskDeepLink, todayIso, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions, DueChip } from "./taskLogic";
@@ -10,7 +10,6 @@ let prepared: PreparedMail | null = null;
 let mailData: MailData | null = null;
 let projectNames: Record<string, string> = {};
 let allTasks: TodoistTask[] = [];
-let oldTaskIds: Record<string, string> = {}; // neue alphanumerische Id -> alte numerische (fuer todoist://)
 let selectedIndex = 0;
 
 function $(id: string): HTMLElement { return document.getElementById(id)!; }
@@ -19,10 +18,8 @@ function openExternal(url: string): void {
   window.open(url, "_blank", "noopener");
 }
 
-// Oeffnet den Task im Desktop-Client: dessen todoist://task?id= versteht nur
-// die alte numerische Id (siehe oldTaskIds); ohne Mapping neue Id als Fallback.
 function openInTodoist(taskId: string): void {
-  openExternal(taskDeepLink(oldTaskIds[taskId] ?? taskId, taskId));
+  openExternal(taskDeepLink(taskId));
 }
 
 function visibleRows(): HTMLButtonElement[] {
@@ -250,8 +247,6 @@ async function loadTasks(token: string): Promise<void> {
     ]);
     allTasks = tasks;
     rerender();
-    // Nicht blockierend: Id-Mapping fuer die Deep-Links im Hintergrund holen.
-    getOldTaskIds(token, tasks.map((t) => t.id)).then((map) => { oldTaskIds = map; });
   } catch (e) {
     setSkeleton(false);
     if (isAuthError(e)) {

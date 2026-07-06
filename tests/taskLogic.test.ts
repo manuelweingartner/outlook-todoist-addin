@@ -37,11 +37,8 @@ describe("taskDeepLink", () => {
   test("zeigt relativ auf die Desktop-Umleitungsseite mit Task-Id", () => {
     expect(taskDeepLink("t5")).toBe("open-task.html?id=t5");
   });
-  test("traegt die Web-Id als eigenen Parameter, wenn sie von der App-Id abweicht", () => {
-    expect(taskDeepLink("918273645", "6VfWjjjFg2xqX6Pa")).toBe("open-task.html?id=918273645&web=6VfWjjjFg2xqX6Pa");
-  });
-  test("laesst den Web-Parameter weg, wenn beide Ids gleich sind", () => {
-    expect(taskDeepLink("t5", "t5")).toBe("open-task.html?id=t5");
+  test("nutzt die neue alphanumerische Id direkt (keine Uebersetzung)", () => {
+    expect(taskDeepLink("6h2H3m29cPCqMR3X")).toBe("open-task.html?id=6h2H3m29cPCqMR3X");
   });
 });
 
