@@ -1,15 +1,27 @@
 import { getToken, setToken } from "../lib/settings";
-import { getAllTasks, getProjects, createTask, deleteComment, TodoistTask } from "../lib/todoist";
+import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, TodoistTask } from "../lib/todoist";
 import { prepareCurrentMail, attachPreparedToTask, PreparedMail } from "../lib/attachToTask";
-import { groupTasks, priorityColor, taskDeepLink, todayIso, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks } from "./taskLogic";
+import { groupTasks, priorityColor, taskDeepLink, todayIso, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection } from "./taskLogic";
 
 let busy = false;
 let searchWired = false;
 let prepared: PreparedMail | null = null;
 let projectNames: Record<string, string> = {};
 let allTasks: TodoistTask[] = [];
+let selectedIndex = 0;
 
 function $(id: string): HTMLElement { return document.getElementById(id)!; }
+
+function visibleRows(): HTMLButtonElement[] {
+  return Array.from($("task-groups").querySelectorAll<HTMLButtonElement>(".task-row"));
+}
+
+function applySelection(): void {
+  const rows = visibleRows();
+  rows.forEach((r, i) => r.classList.toggle("selected", i === selectedIndex));
+  const sel = rows[selectedIndex];
+  if (sel) sel.scrollIntoView({ block: "nearest" });
+}
 
 function setStatus(msg: string, kind: "" | "ok" | "err" = "", cause?: unknown): void {
   const el = $("status");
@@ -113,6 +125,9 @@ function renderSections(sections: Array<[string, TodoistTask[]]>, emptyText: str
     for (const task of list) ul.appendChild(makeRow(task));
     groups.appendChild(ul);
   }
+
+  selectedIndex = 0;
+  applySelection();
 }
 
 // Standardansicht (leeres Suchfeld): Vorschlaege zuoberst, dann Ueberfaellig/Heute.
@@ -128,6 +143,14 @@ function renderDefaultView(): void {
     [["Vorschläge", suggestions], ["Überfällig", overdue], ["Heute", todayList]],
     "Keine Tasks für heute.",
   );
+}
+
+// Rendert passend zum aktuellen Suchfeld-Inhalt. Fixt nebenbei: Tippen waehrend
+// des Initial-Loads wird beim Load-Ende nicht mehr von der Standardansicht ueberschrieben.
+function rerender(): void {
+  const q = ($("search") as HTMLInputElement).value.trim();
+  if (q) renderSections([["Treffer", filterTasks(allTasks, q, projectNames)]], "Keine Treffer.");
+  else renderDefaultView();
 }
 
 async function attach(task: TodoistTask, btn: HTMLButtonElement, state: HTMLElement, li: HTMLElement): Promise<void> {
@@ -176,6 +199,7 @@ function renderUndo(li: HTMLElement, token: string, commentId: string, state: HT
 }
 
 async function loadTasks(token: string): Promise<void> {
+  $("load-error").hidden = true;
   setSkeleton(true);
   try {
     const [tasks] = await Promise.all([
@@ -183,11 +207,17 @@ async function loadTasks(token: string): Promise<void> {
       loadProjects(token),
     ]);
     allTasks = tasks;
-    renderDefaultView();
+    rerender();
   } catch (e) {
     setSkeleton(false);
-    setStatus(`Token ungültig oder Abruf fehlgeschlagen: ${(e as Error).message}`, "err", e);
-    showTokenSection();
+    if (isAuthError(e)) {
+      setStatus(`Token ungültig: ${(e as Error).message}`, "err", e);
+      showTokenSection();
+    } else {
+      console.error("Task-Load fehlgeschlagen", e);
+      $("load-error-text").textContent = `Abruf fehlgeschlagen: ${(e as Error).message}`;
+      $("load-error").hidden = false;
+    }
   }
 }
 
@@ -201,17 +231,30 @@ async function loadProjects(token: string): Promise<void> {
 }
 
 function wireSearch(): void {
-  ($("search") as HTMLInputElement).addEventListener("input", (e) => {
-    const q = (e.target as HTMLInputElement).value.trim();
-    if (!q) { renderDefaultView(); return; }
-    renderSections([["Treffer", filterTasks(allTasks, q, projectNames)]], "Keine Treffer.");
+  ($("search") as HTMLInputElement).addEventListener("input", () => {
+    rerender();
   });
 
   ($("search") as HTMLInputElement).addEventListener("keydown", (e) => {
-    if ((e as KeyboardEvent).key !== "Enter") return;
-    const first = $("task-groups").querySelector(".task-row") as HTMLButtonElement | null;
-    if (first && !first.disabled) first.click();
+    const key = (e as KeyboardEvent).key;
+    if (key === "ArrowDown" || key === "ArrowUp") {
+      e.preventDefault();
+      selectedIndex = moveSelection(selectedIndex, key === "ArrowDown" ? 1 : -1, visibleRows().length);
+      applySelection();
+      return;
+    }
+    if (key !== "Enter") return;
+    const rows = visibleRows();
+    const target = rows[selectedIndex] ?? rows[0];
+    if (target && !target.disabled) target.click();
   });
+}
+
+function wireRetry(): void {
+  ($("load-error-retry") as HTMLButtonElement).onclick = () => {
+    const token = getToken();
+    if (token) void loadTasks(token);
+  };
 }
 
 function wireNewTask(): void {
@@ -250,7 +293,7 @@ async function start(): Promise<void> {
     setStatus(`Mail konnte nicht gelesen werden: ${(e as Error).message}`, "err", e);
   }
 
-  if (!searchWired) { wireSearch(); wireNewTask(); searchWired = true; }
+  if (!searchWired) { wireSearch(); wireNewTask(); wireRetry(); searchWired = true; }
   ($("search") as HTMLInputElement).focus();
   await loadTasks(token);
 }
