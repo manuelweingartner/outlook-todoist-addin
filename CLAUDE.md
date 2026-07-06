@@ -34,6 +34,7 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 - `src/lib/attachToTask.ts` - `senderName` (parst "Name <adresse>" fürs Kommentar-Meta), `prepareMail(mail, includeAttachments)` (baut .eml wahlweise mit/ohne Anhänge, liefert sizeBytes/subject/commentText/bodyText), `readAndPrepareCurrentMail` (liest die offene Mail einmal und liefert `MailData` + `PreparedMail` zusammen, Basis für den Text-only-Fallback im Task-Pane), `prepareCurrentMail` (Kompatibilitäts-Wrapper), `attachPreparedToTask` (Vorab-25MB-Check gegen `MAX_BYTES`, upload, Kommentar, gibt id), `formatMailDate` (UTC-stabil). Kommentartext = Betreff (Datum, von Name).
 - `src/taskpane/taskLogic.ts` - Reine Logik: groupTasks (Heute/Überfällig), priorityColor, taskDeepLink, todayIso, filterTasks (case-insensitive Client-Suche, UND-Verknüpfung über Titel + Projektname, `#projekt`-Wörter matchen nur den Projektnamen), dueTodayOrOverdue (repliziert den früheren Server-Filter client-seitig), extractMailKeywords/suggestTasks (Top-3-Vorschläge aus Betreff-/Body-Schlagwörtern der aktuellen Mail), moveSelection (Pfeiltasten-Wrap für die Trefferliste), buildNewTaskOptions (validiert/mappt das Neuer-Task-Formular auf `NewTaskOptions`).
 - `src/taskpane/taskpane.{html,ts,css}` - UI im Todoist-Look (rot `#e44332`, Dark-Mode via prefers-color-scheme, self-contained CSS, kein Fluent-CDN). 5 Zustände (Onboarding/Skeleton/Liste/Leer/Inline-Anhängen). Features: Ein-Klick-Anhängen mit Inline-Haken + Rückgängig, Mail-Kontext-Kopf, Vorab-Grössenwarnung, Tastatur-Flow (Enter hängt obersten Treffer an, Pfeiltasten navigieren die Trefferliste), Projektnamen, In-Todoist-öffnen, Neuen-Task-aus-Mail-Formular (Titel/Projekt/Priorität/Fälligkeit), Vorschläge-Sektion (passende Tasks zur offenen Mail zuoberst) + Client-Suche (case-insensitiv über alle geladenen Tasks, `#projekt`-Syntax), Retry-Banner bei fehlgeschlagenem Task-Load, Text-only-Anhängen-Button in der Grössenwarnung (Mail ohne Anhänge trotzdem anhängen, wenn die Vollversion über 25 MB liegt). Trefferzeile zweizeilig: Titel als prominente Hauptzeile (`.task-main`), Projekt als kleine Unterzeile.
+- `src/open-task.html` - Statische Umleitungsseite (per Webpack-Copy ins dist-Root): läuft im System-Browser, löst dort `todoist://task?id=` aus (Desktop-Client), Web-App-Link als Fallback, schliesst sich nach 1.5s selbst. Nötig, weil die Outlook-Webview Custom-Protokolle blockt.
 - `manifest.xml` (Dev, localhost:3000) / `manifest.prod.xml` (Prod, Pages-URL). **Redesign änderte das Manifest NICHT -> kein IT-Rollout nötig, Self-Deploy genügt.**
 
 ## Befehle
@@ -65,6 +66,17 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 
 ## Status / Gotchas
 
+- 2026-07-06 spät: **On-Device-Nachfix-Runde (3 Hotfixes direkt auf master, alle deployed + von Manuel abgenommen).**
+  (1) `041daa7`: todoist://-Direktlinks revertiert (siehe Gotcha unten), Projekt-Dropdown
+  lädt Projekte beim Formular-Öffnen nach falls Cache leer + "Inbox"-Fallback-Option,
+  Retry-Button kompakt statt vollbreit. (2) `0570f46`: `color-scheme: light`/`dark` im CSS.
+  (3) `a6fd65e`: Task-Links zeigen auf die Umleitungsseite `open-task.html?id=` -> öffnet
+  den **Todoist-Desktop-Client** via System-Browser (Windows fragt einmal "Immer erlauben").
+  **GOTCHA 1: Die Outlook-Webview blockt Custom-Protokoll-Links (todoist:// zeigt eine
+  Verbotssymbol-Fehlerseite), auch via Anchor-Click. Protokoll-Sprünge IMMER über eine
+  im System-Browser geöffnete Umleitungsseite lösen.**
+  **GOTCHA 2: WebView2 braucht `color-scheme` im CSS, sonst rendert das native
+  Select-Popup im Dark-Mode hell mit heller Textfarbe = Dropdown wirkt leer.**
 - 2026-07-06: **Verbesserungspaket (5 Features, Branch `feat/verbesserungspaket`).**
   (1) Pfeiltasten-Navigation in der Trefferliste (`moveSelection`, wrapt an den Rändern,
   Enter hängt die aktuell markierte Zeile an, nicht mehr fix die oberste). (2) Neues-Task-
