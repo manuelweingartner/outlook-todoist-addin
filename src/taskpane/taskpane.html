@@ -45,6 +45,30 @@
         <div id="task-groups"></div>
       </div>
       <button id="new-task" class="ghost" hidden>+ Neuen Task mit dieser Mail</button>
+      <form id="new-task-form" hidden>
+        <input id="nt-title" type="text" placeholder="Task-Titel" autocomplete="off" />
+        <select id="nt-project" aria-label="Projekt"></select>
+        <div class="nt-row">
+          <span class="nt-label">Priorität</span>
+          <span class="nt-prio" id="nt-prio">
+            <button type="button" data-p="4" title="P1"></button>
+            <button type="button" data-p="3" title="P2"></button>
+            <button type="button" data-p="2" title="P3"></button>
+            <button type="button" data-p="1" title="Keine" class="active"></button>
+          </span>
+        </div>
+        <div class="nt-chips" id="nt-chips">
+          <button type="button" data-chip="none" class="active">Kein Datum</button>
+          <button type="button" data-chip="today">Heute</button>
+          <button type="button" data-chip="tomorrow">Morgen</button>
+          <button type="button" data-chip="nextWeek">Nächste Woche</button>
+        </div>
+        <input id="nt-due-text" type="text" placeholder="oder Fälligkeit als Text, z.B. freitag" autocomplete="off" />
+        <div class="nt-actions">
+          <button type="submit" id="nt-create" class="primary">Erstellen + Mail anhängen</button>
+          <button type="button" id="nt-cancel" class="ghost">Abbrechen</button>
+        </div>
+      </form>
     </section>
 
     <p id="status" role="status"></p>

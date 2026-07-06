@@ -1,7 +1,7 @@
 import { getToken, setToken } from "../lib/settings";
 import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, TodoistTask } from "../lib/todoist";
 import { prepareCurrentMail, attachPreparedToTask, PreparedMail } from "../lib/attachToTask";
-import { groupTasks, priorityColor, taskDeepLink, todayIso, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection } from "./taskLogic";
+import { groupTasks, priorityColor, taskDeepLink, todayIso, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions, DueChip } from "./taskLogic";
 
 let busy = false;
 let searchWired = false;
@@ -257,25 +257,79 @@ function wireRetry(): void {
   };
 }
 
+let ntPriority = 1;
+let ntChip: DueChip = "none";
+
+function markActive(container: HTMLElement, active: HTMLElement): void {
+  for (const el of Array.from(container.children)) el.classList.toggle("active", el === active);
+}
+
+function fillProjectSelect(): void {
+  const sel = $("nt-project") as HTMLSelectElement;
+  sel.innerHTML = "";
+  const entries = Object.entries(projectNames);
+  const inboxIdx = entries.findIndex(([, name]) => name === "Inbox" || name === "Eingang");
+  if (inboxIdx > 0) entries.unshift(entries.splice(inboxIdx, 1)[0]);
+  for (const [id, name] of entries) {
+    const o = document.createElement("option");
+    o.value = id;
+    o.textContent = name;
+    sel.appendChild(o);
+  }
+}
+
 function wireNewTask(): void {
   const btn = $("new-task") as HTMLButtonElement;
+  const form = $("new-task-form") as HTMLFormElement;
   btn.hidden = false;
-  btn.onclick = async () => {
+
+  btn.onclick = () => {
+    if (tooLarge() || !prepared) return;
+    form.hidden = !form.hidden;
+    if (!form.hidden) {
+      ($("nt-title") as HTMLInputElement).value = prepared.subject || "";
+      fillProjectSelect();
+      ($("nt-title") as HTMLInputElement).focus();
+    }
+  };
+
+  ($("nt-cancel") as HTMLButtonElement).onclick = () => { form.hidden = true; };
+
+  for (const b of Array.from($("nt-prio").querySelectorAll<HTMLButtonElement>("button"))) {
+    b.style.background = priorityColor(Number(b.dataset.p));
+    b.onclick = () => { ntPriority = Number(b.dataset.p); markActive($("nt-prio"), b); };
+  }
+  for (const b of Array.from($("nt-chips").querySelectorAll<HTMLButtonElement>("button"))) {
+    b.onclick = () => { ntChip = b.dataset.chip as DueChip; markActive($("nt-chips"), b); };
+  }
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
     if (busy || tooLarge() || !prepared) return;
     const token = getToken();
     if (!token) { showTokenSection(); return; }
-    busy = true; btn.disabled = true;
+    busy = true;
+    ($("nt-create") as HTMLButtonElement).disabled = true;
     setStatus("Erstelle Task...", "");
     try {
-      const task = await createTask(token, { content: prepared.subject || "Mail" });
-      const commentId = await attachPreparedToTask(token, task.id, prepared);
+      const opts = buildNewTaskOptions({
+        title: ($("nt-title") as HTMLInputElement).value,
+        projectId: ($("nt-project") as HTMLSelectElement).value || null,
+        priority: ntPriority,
+        dueChip: ntChip,
+        dueText: ($("nt-due-text") as HTMLInputElement).value,
+        today: todayIso(new Date()),
+      });
+      const task = await createTask(token, opts);
+      await attachPreparedToTask(token, task.id, prepared);
       setStatus(`Neuer Task "${task.content}" mit Mail erstellt.`, "ok");
-      void commentId;
+      form.hidden = true;
       await loadTasks(token);
-    } catch (e) {
-      setStatus(`Fehler beim Erstellen: ${(e as Error).message}`, "err", e);
+    } catch (e2) {
+      setStatus(`Fehler beim Erstellen: ${(e2 as Error).message}`, "err", e2); // Formular bleibt offen, Eingaben bleiben
     } finally {
-      busy = false; btn.disabled = false;
+      busy = false;
+      ($("nt-create") as HTMLButtonElement).disabled = false;
     }
   };
 }
