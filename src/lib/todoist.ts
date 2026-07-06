@@ -13,6 +13,15 @@ export interface TodoistTask {
 export interface TodoistProject { id: string; name: string; }
 export interface UploadedFile { file_url: string; file_name: string; file_type: string; }
 
+export interface NewTaskOptions {
+  content: string;
+  project_id?: string;
+  priority?: number;     // 1 bis 4, 4 = hoechste (P1)
+  due_date?: string;     // YYYY-MM-DD, deterministisch (Chips)
+  due_string?: string;   // natuerliche Sprache, von Todoist geparst
+  due_lang?: string;
+}
+
 // v1-Listen sind paginiert: { results: [...], next_cursor: ... }.
 interface Paginated<T> { results: T[]; next_cursor?: string | null; }
 
@@ -43,17 +52,30 @@ function unwrap<T>(data: Paginated<T> | T[]): T[] {
   return Array.isArray(data) ? data : data.results ?? [];
 }
 
+// true nur fuer echte Auth-Probleme (Token ungueltig/gesperrt); alles andere ist retry-wuerdig.
+export function isAuthError(e: unknown): boolean {
+  return e instanceof TodoistError && (e.status === 401 || e.status === 403);
+}
+
+const MAX_PAGES = 50; // 10'000 Tasks; Endlosschleifen-Versicherung falls die API einen stabilen Cursor liefert
+
 // Laedt ALLE offenen Tasks: v1 paginiert mit max. 200 pro Seite, wir folgen
 // next_cursor bis zum Ende. Basis fuer client-seitige Suche + Vorschlaege.
 export async function getAllTasks(token: string): Promise<TodoistTask[]> {
   const all: TodoistTask[] = [];
   let cursor: string | null | undefined;
+  let pages = 0;
   do {
     const url = `${API}/tasks?limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
     const res = await fetch(url, { headers: auth(token) });
     const data: Paginated<TodoistTask> | TodoistTask[] = await (await ensureOk(res)).json();
     all.push(...unwrap(data));
     cursor = Array.isArray(data) ? null : data.next_cursor;
+    pages++;
+    if (pages >= MAX_PAGES && cursor) {
+      console.error(`getAllTasks: Abbruch nach ${MAX_PAGES} Seiten, Task-Liste evtl. unvollstaendig.`);
+      cursor = null;
+    }
   } while (cursor);
   return all;
 }
@@ -90,11 +112,11 @@ export async function getProjects(token: string): Promise<TodoistProject[]> {
   return unwrap<TodoistProject>(await (await ensureOk(res)).json());
 }
 
-export async function createTask(token: string, content: string): Promise<TodoistTask> {
+export async function createTask(token: string, options: NewTaskOptions): Promise<TodoistTask> {
   const res = await fetch(`${API}/tasks`, {
     method: "POST",
     headers: { ...auth(token), "Content-Type": "application/json" },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(options),
   });
   return (await ensureOk(res)).json();
 }

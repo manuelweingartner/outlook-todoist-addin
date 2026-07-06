@@ -224,7 +224,7 @@ function wireNewTask(): void {
     busy = true; btn.disabled = true;
     setStatus("Erstelle Task...", "");
     try {
-      const task = await createTask(token, prepared.subject || "Mail");
+      const task = await createTask(token, { content: prepared.subject || "Mail" });
       const commentId = await attachPreparedToTask(token, task.id, prepared);
       setStatus(`Neuer Task "${task.content}" mit Mail erstellt.`, "ok");
       void commentId;

@@ -1,4 +1,4 @@
-import { uploadFile, addComment, TodoistError, deleteComment, getProjects, createTask, getAllTasks } from "../src/lib/todoist";
+import { uploadFile, addComment, TodoistError, deleteComment, getProjects, createTask, getAllTasks, isAuthError } from "../src/lib/todoist";
 
 function mockFetch(status: number, json: unknown) {
   (global as any).fetch = jest.fn().mockResolvedValue({
@@ -73,14 +73,47 @@ describe("getProjects", () => {
 });
 
 describe("createTask", () => {
-  test("POSTet content an /tasks und gibt Task zurueck", async () => {
-    mockFetch(200, { id: "t5", content: "Neuer Task", project_id: "p1" });
-    const t = await createTask("tok", "Neuer Task");
-    expect(t.id).toBe("t5");
+  test("POSTet Options als JSON-Body", async () => {
+    mockFetch(200, { id: "9", content: "Neu", project_id: "p1" });
+    const task = await createTask("tok", { content: "Neu", project_id: "p1", priority: 3, due_date: "2026-07-07" });
+    expect(task.id).toBe("9");
     const [url, opts] = (global as any).fetch.mock.calls[0];
     expect(url).toBe("https://api.todoist.com/api/v1/tasks");
     expect(opts.method).toBe("POST");
-    expect(JSON.parse(opts.body).content).toBe("Neuer Task");
+    expect(JSON.parse(opts.body)).toEqual({ content: "Neu", project_id: "p1", priority: 3, due_date: "2026-07-07" });
+  });
+  test("minimaler Aufruf nur mit content", async () => {
+    mockFetch(200, { id: "9", content: "Neu", project_id: "p1" });
+    await createTask("tok", { content: "Neu" });
+    expect(JSON.parse((global as any).fetch.mock.calls[0][1].body)).toEqual({ content: "Neu" });
+  });
+});
+
+describe("isAuthError", () => {
+  test("401 und 403 sind Auth-Fehler", () => {
+    expect(isAuthError(new TodoistError(401, "unauthorized"))).toBe(true);
+    expect(isAuthError(new TodoistError(403, "forbidden"))).toBe(true);
+  });
+  test("andere Fehler nicht", () => {
+    expect(isAuthError(new TodoistError(500, "boom"))).toBe(false);
+    expect(isAuthError(new TypeError("Failed to fetch"))).toBe(false);
+    expect(isAuthError(undefined)).toBe(false);
+  });
+});
+
+describe("getAllTasks maxPages", () => {
+  test("bricht nach 50 Seiten mit stabilem Cursor ab und liefert Teilmenge", async () => {
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ results: [{ id: "x", content: "T", project_id: "p" }], next_cursor: "immerGleich" }),
+      text: async () => "",
+    });
+    const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const tasks = await getAllTasks("tok");
+    expect((global as any).fetch).toHaveBeenCalledTimes(50);
+    expect(tasks).toHaveLength(50);
+    expect(errSpy).toHaveBeenCalled();
+    errSpy.mockRestore();
   });
 });
 
