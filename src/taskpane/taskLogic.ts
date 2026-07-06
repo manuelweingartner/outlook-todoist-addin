@@ -31,3 +31,23 @@ export function priorityColor(priority?: number): string {
 export function taskDeepLink(id: string): string {
   return `https://app.todoist.com/app/task/${id}`;
 }
+
+// Client-seitige Suche: case-insensitiv, alle Woerter muessen matchen (UND),
+// gesucht wird in Task-Titel UND Projektname ("sap" findet Projekt "SAP").
+export function filterTasks(
+  tasks: TodoistTask[],
+  query: string,
+  projectNames: Record<string, string>,
+): TodoistTask[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return tasks;
+  return tasks.filter((task) => {
+    const hay = `${task.content} ${projectNames[task.project_id] ?? ""}`.toLowerCase();
+    return words.every((w) => hay.includes(w));
+  });
+}
+
+// Repliziert den frueheren Server-Filter "(today | overdue)" client-seitig.
+export function dueTodayOrOverdue(tasks: TodoistTask[], today: string): TodoistTask[] {
+  return tasks.filter((task) => !!task.due?.date && task.due.date <= today);
+}
