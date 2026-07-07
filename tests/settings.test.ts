@@ -1,4 +1,4 @@
-import { getToken, setToken } from "../src/lib/settings";
+import { getToken, setToken, getAnthropicKey, setAnthropicKey } from "../src/lib/settings";
 
 describe("settings", () => {
   let store: Record<string, unknown>;
@@ -30,5 +30,22 @@ describe("settings", () => {
   test("getToken liefert null nach setToken('')", async () => {
     await setToken("");
     expect(getToken()).toBeNull();
+  });
+
+  test("Anthropic-Key: null wenn nichts gespeichert", () => {
+    expect(getAnthropicKey()).toBeNull();
+  });
+
+  test("Anthropic-Key: setzen und zurueticklesen, getrennt vom Todoist-Token", async () => {
+    await setToken("todoist-tok");
+    await setAnthropicKey("sk-ant-xyz");
+    expect(getAnthropicKey()).toBe("sk-ant-xyz");
+    expect(getToken()).toBe("todoist-tok"); // Keys beeinflussen sich nicht
+  });
+
+  test("Anthropic-Key: leerer String loescht (getAnthropicKey -> null)", async () => {
+    await setAnthropicKey("sk-ant-xyz");
+    await setAnthropicKey("");
+    expect(getAnthropicKey()).toBeNull();
   });
 });

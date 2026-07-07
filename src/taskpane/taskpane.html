@@ -24,7 +24,12 @@
         <li>Todoist öffnen: Einstellungen &gt; Integrationen &gt; Entwickler</li>
         <li>API-Token kopieren und unten einfügen</li>
       </ol>
-      <input id="token-input" type="password" placeholder="API-Token" autocomplete="off" />
+      <input id="token-input" type="password" placeholder="Todoist API-Token" autocomplete="off" />
+
+      <p class="lead" style="margin-top:18px">KI-Zusammenfassung (optional)</p>
+      <input id="anthropic-input" type="password" placeholder="Anthropic API-Key (optional)" autocomplete="off" />
+      <p class="hint-note">Mit Anthropic-Key wird der Kommentartitel als Ein-Satz-Zusammenfassung der Mail erzeugt. Dafür wird der Mailinhalt an Anthropic gesendet. Ohne Key bleibt der Betreff der Titel. Der Key wird (wie der Todoist-Token) im Add-in gespeichert und über dein Postfach synchronisiert.</p>
+
       <button id="token-save" class="primary">Speichern</button>
     </section>
 
@@ -69,6 +74,7 @@
           <button type="button" id="nt-cancel" class="ghost">Abbrechen</button>
         </div>
       </form>
+      <button id="open-settings" class="ghost">⚙ Einstellungen (Token / KI-Zusammenfassung)</button>
     </section>
 
     <p id="status" role="status"></p>

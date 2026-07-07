@@ -41,6 +41,7 @@ body {
 .lead { margin: 0 0 8px; }
 .hint { font-size: 12px; color: var(--text-soft); margin: 0 0 12px; padding-left: 18px; }
 .hint li { margin-bottom: 4px; }
+.hint-note { font-size: 12px; color: var(--text-soft); margin: 6px 0 4px; line-height: 1.45; }
 
 input, select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 14px; }
 input:focus, select:focus { outline: none; border-color: var(--accent); }

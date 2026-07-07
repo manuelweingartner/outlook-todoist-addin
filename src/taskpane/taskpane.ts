@@ -1,4 +1,5 @@
-import { getToken, setToken } from "../lib/settings";
+import { getToken, setToken, getAnthropicKey, setAnthropicKey } from "../lib/settings";
+import { summarizeMail } from "../lib/summarize";
 import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, TodoistTask } from "../lib/todoist";
 import { readAndPrepareCurrentMail, prepareMail, attachPreparedToTask, PreparedMail, MAX_BYTES } from "../lib/attachToTask";
 import { MailData } from "../lib/emlBuilder";
@@ -187,6 +188,20 @@ function rerender(): void {
   else renderDefaultView();
 }
 
+// Titel des Todoist-Kommentars: mit Anthropic-Key eine Ein-Satz-KI-Zusammenfassung,
+// sonst (oder bei jedem Fehler) der bisherige Betreff-Titel. Blockiert nie das Anhaengen.
+async function resolveCommentTitle(): Promise<{ title: string; note: string }> {
+  const fallback = prepared!.commentText;
+  const aiKey = getAnthropicKey();
+  if (!aiKey || !mailData) return { title: fallback, note: "" };
+  try {
+    return { title: await summarizeMail(aiKey, mailData, prepared!.bodyText), note: "" };
+  } catch (e) {
+    console.error("KI-Zusammenfassung fehlgeschlagen, Betreff als Titel verwendet.", e);
+    return { title: fallback, note: "Zusammenfassung nicht verfügbar, Betreff als Titel verwendet." };
+  }
+}
+
 async function attach(task: TodoistTask, btn: HTMLButtonElement, state: HTMLElement, li: HTMLElement): Promise<void> {
   if (busy || tooLarge() || !prepared) return;
   const token = getToken();
@@ -196,11 +211,12 @@ async function attach(task: TodoistTask, btn: HTMLButtonElement, state: HTMLElem
   state.className = "state busy";
   state.textContent = "...";
   try {
-    const commentId = await attachPreparedToTask(token, task.id, prepared);
+    const { title, note } = await resolveCommentTitle();
+    const commentId = await attachPreparedToTask(token, task.id, prepared, title);
     state.className = "state ok";
     state.textContent = "✓"; // Haken
     renderUndo(li, token, commentId, state, task.id);
-    setStatus("", "");
+    setStatus(note, ""); // leer bei Erfolg; sonst neutraler Fallback-Hinweis (Anhaengen hat geklappt)
   } catch (e) {
     state.className = "state";
     state.textContent = "";
@@ -418,12 +434,21 @@ async function start(): Promise<void> {
   await loadTasks(token);
 }
 
+function showSettings(): void {
+  ($("token-input") as HTMLInputElement).value = getToken() ?? "";
+  ($("anthropic-input") as HTMLInputElement).value = getAnthropicKey() ?? "";
+  showTokenSection();
+}
+
 Office.onReady(() => {
   ($("token-save") as HTMLButtonElement).onclick = async () => {
     const val = ($("token-input") as HTMLInputElement).value.trim();
-    if (!val) { setStatus("Bitte Token eingeben.", "err"); return; }
+    if (!val) { setStatus("Bitte Todoist-Token eingeben.", "err"); return; }
+    const aiVal = ($("anthropic-input") as HTMLInputElement).value.trim();
     await setToken(val);
+    await setAnthropicKey(aiVal); // leerer String schaltet die KI-Zusammenfassung aus
     void start();
   };
+  ($("open-settings") as HTMLButtonElement).onclick = showSettings;
   void start();
 });

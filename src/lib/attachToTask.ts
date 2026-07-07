@@ -77,12 +77,19 @@ export async function prepareCurrentMail(): Promise<PreparedMail> {
   return (await readAndPrepareCurrentMail()).prepared;
 }
 
-export async function attachPreparedToTask(token: string, taskId: string, prepared: PreparedMail): Promise<string> {
+// commentText erlaubt einen Titel-Override (z.B. KI-Zusammenfassung); ohne Angabe
+// bleibt es der Betreff-basierte prepared.commentText.
+export async function attachPreparedToTask(
+  token: string,
+  taskId: string,
+  prepared: PreparedMail,
+  commentText: string = prepared.commentText,
+): Promise<string> {
   if (prepared.sizeBytes > MAX_BYTES) {
     throw new Error(`Mail ist ${(prepared.sizeBytes / 1024 / 1024).toFixed(1)} MB gross, Todoist erlaubt max 25 MB.`);
   }
   const uploaded = await uploadFile(token, prepared.blob, prepared.fileName);
-  return addComment(token, taskId, uploaded, prepared.commentText);
+  return addComment(token, taskId, uploaded, commentText);
 }
 
 export async function attachCurrentMailToTask(token: string, taskId: string): Promise<string> {

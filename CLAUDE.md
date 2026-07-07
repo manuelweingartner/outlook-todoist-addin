@@ -27,7 +27,8 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 
 ## Module
 
-- `src/lib/settings.ts` - Token lesen/speichern (roamingSettings).
+- `src/lib/settings.ts` - Token lesen/speichern (roamingSettings): `getToken`/`setToken` (Schlüssel `todoistToken`) + `getAnthropicKey`/`setAnthropicKey` (Schlüssel `anthropicKey`, optional, für die KI-Zusammenfassung; leerer String = aus).
+- `src/lib/summarize.ts` - KI-Zusammenfassung des Mailinhalts als Kommentartitel. `buildSummaryPrompt`/`parseSummary` (rein, testbar) + `summarizeMail(key, mail, bodyText)`: raw `fetch` an `api.anthropic.com/v1/messages`, Modell `claude-haiku-4-5`, Header `anthropic-dangerous-direct-browser-access: true` (CORS für Browser erlaubt, verifiziert `allow-origin: *`). Wirft `SummaryError`; Aufrufer fällt auf den Betreff-Titel zurück.
 - `src/lib/emlBuilder.ts` - `MailData` -> gültiges MIME (.eml). Reine Logik.
 - `src/lib/mailReader.ts` - Office.js-Item -> `MailData` (nur File-Anhänge).
 - `src/lib/todoist.ts` - **Unified API v1** (`api.todoist.com/api/v1`): `getAllTasks` (Cursor-Pagination über `/tasks?limit=200`, folgt `next_cursor` bis zum Ende, `MAX_PAGES`-Sicherung gegen Endlosschleifen bei instabilem Cursor, Basis für Client-Suche + Vorschläge), uploadFile (`/uploads`), addComment (`/comments`, gibt Kommentar-id zurück), deleteComment, getProjects, `createTask` (nimmt `NewTaskOptions`: content/project_id/priority/due_date/due_string/due_lang), `isAuthError` (401/403-Erkennung fürs Token-Retry). `TodoistTask` trägt optional `priority`/`due`. (Die frühere serverseitige Suche `getTasks`/`searchTasks`/`tasksByQuery` wurde entfernt, siehe Status 2026-07-06.)
@@ -65,6 +66,23 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 - Neue Logik kommt mit Test (TDD).
 
 ## Status / Gotchas
+
+- 2026-07-07: **KI-Zusammenfassung als Kommentartitel LIVE (opt-in, nicht-brechend).** Statt
+  `Betreff (Datum, von Name)` erzeugt das Add-in beim Anhängen einen Ein-Satz-Zusammenfassung
+  der Mail als Todoist-Kommentartitel (von wem/worum/welche Aktion), client-seitig via Claude
+  Haiku 4.5. **Aktiv nur wenn ein Anthropic-Key hinterlegt ist** (zweites Feld im Einstellungs-
+  bereich, Schlüssel `anthropicKey` in roamingSettings; "⚙ Einstellungen"-Button in der
+  Task-Ansicht öffnet den Bereich vorbefüllt). Kein Key -> exakt wie bisher (Betreff-Titel).
+  Fully-automatic (kein Vorschau-Schritt), bestehender Rückgängig-Button. Fehler-Fallback:
+  Key fehlt / API-Fehler / Refusal / leer / Netzwerk -> Betreff-Titel + neutraler Hinweis,
+  blockiert nie das Anhängen. Spec: `docs/superpowers/specs/2026-07-07-mail-zusammenfassung-design.md`.
+  99 Tests. **GOTCHA: Datenschutz - der Mailinhalt (CMI-Geschäftsmail!) verlässt das Haus zu
+  Anthropic. Bewusste Entscheidung Manuels (privater Key); das Add-in kontaktiert damit erstmals
+  einen Dritten ausser Todoist. Bei CMI-Rollout/-Weitergabe Compliance beachten.** GOTCHA: der
+  Anthropic-Key liegt (wie der Todoist-Token) im Browser/roamingSettings, technisch auslesbar,
+  roamt übers Postfach. GOTCHA: Anthropic-Browser-Call braucht Header
+  `anthropic-dangerous-direct-browser-access: true` (CORS-Preflight verifiziert `allow-origin: *`).
+
 
 - 2026-07-06 spät (3): **ECHTE Ursache gefunden (Instrumentierung via Todoist-App-Log + PrintWindow).**
   Das Todoist-App-Log (`%APPDATA%/Todoist/logs/todoist-main.log`) protokolliert jeden
