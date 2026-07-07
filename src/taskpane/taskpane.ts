@@ -197,8 +197,9 @@ async function resolveCommentTitle(): Promise<{ title: string; note: string }> {
   try {
     return { title: await summarizeMail(aiKey, mailData, prepared!.bodyText), note: "" };
   } catch (e) {
+    const msg = (e as Error).message;
     console.error("KI-Zusammenfassung fehlgeschlagen, Betreff als Titel verwendet.", e);
-    return { title: fallback, note: "Zusammenfassung nicht verfügbar, Betreff als Titel verwendet." };
+    return { title: fallback, note: `Zusammenfassung fehlgeschlagen (${msg}) - Betreff als Titel verwendet.` };
   }
 }
 

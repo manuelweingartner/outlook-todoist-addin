@@ -9,6 +9,7 @@ const API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = "claude-haiku-4-5";
 const MAX_TOKENS = 120;
 const BODY_LIMIT = 2000;
+const TIMEOUT_MS = 20000; // blockiert das Anhaengen nie laenger als 20s
 
 export class SummaryError extends Error {
   constructor(message: string) {
@@ -50,6 +51,8 @@ export function parseSummary(json: unknown): string {
 }
 
 export async function summarizeMail(key: string, mail: MailData, bodyText: string): Promise<string> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   let res: Response;
   try {
     res = await fetch(API_URL, {
@@ -65,9 +68,13 @@ export async function summarizeMail(key: string, mail: MailData, bodyText: strin
         max_tokens: MAX_TOKENS,
         messages: [{ role: "user", content: buildSummaryPrompt(mail, bodyText) }],
       }),
+      signal: ctrl.signal,
     });
   } catch (e) {
-    throw new SummaryError(`Netzwerkfehler: ${(e as Error).message}`);
+    const m = (e as Error).name === "AbortError" ? `Timeout nach ${TIMEOUT_MS / 1000}s` : (e as Error).message;
+    throw new SummaryError(`Netzwerkfehler: ${m}`);
+  } finally {
+    clearTimeout(timer);
   }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
