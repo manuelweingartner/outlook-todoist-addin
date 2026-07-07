@@ -23,6 +23,13 @@ module.exports = async (env, options) => {
     },
     output: {
       clean: true,
+      // Prod: Content-Hash im Bundle-Namen -> jede Code-Aenderung ergibt eine neue
+      // JS-URL, die kein Browser/WebView2-Cache veralten lassen kann. taskpane.html /
+      // commands.html bleiben fix (Manifest verweist darauf), HtmlWebpackPlugin
+      // injiziert die gehashten Script-Namen automatisch. Behebt "sehe den Change
+      // nicht" ohne manuelles Cache-Leeren (WebView2 des neuen Outlook cacht sonst
+      // den stabilen taskpane.js-Namen stur, siehe Olk\EBWebView-Cache).
+      filename: dev ? "[name].js" : "[name].[contenthash].js",
     },
     resolve: {
       extensions: [".ts", ".html", ".js"],
