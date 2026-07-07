@@ -96,6 +96,10 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
   Anthropic-Key liegt (wie der Todoist-Token) im Browser/roamingSettings, technisch auslesbar,
   roamt übers Postfach. GOTCHA: Anthropic-Browser-Call braucht Header
   `anthropic-dangerous-direct-browser-access: true` (CORS-Preflight verifiziert `allow-origin: *`).
+  **2026-07-07 on-device BESTÄTIGT (Manuel: "jetzt läuft es").** resolveCommentTitle zeigt den echten
+  Anthropic-Fehler im Status-Note (statt still zu schlucken) + 20s-AbortController-Timeout gegen Hänger.
+  **GOTCHA: API braucht Guthaben auf dem Anthropic-Console-Account (Plans & Billing), separat vom
+  Claude-Max-Plan - sonst `400 credit balance too low` (dann greift der Betreff-Fallback).**
 
 
 - 2026-07-06 spät (3): **ECHTE Ursache gefunden (Instrumentierung via Todoist-App-Log + PrintWindow).**
