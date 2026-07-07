@@ -67,6 +67,20 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 
 ## Status / Gotchas
 
+- 2026-07-07 (2): **"Sehe den Change nicht" = WebView2-Cache des NEUEN Outlook.** Manuel nutzt
+  das neue Outlook (`olk.exe` + Add-in-Host `olkexthost.exe`). Dessen Add-in-WebView2-Cache liegt
+  NICHT im klassischen `...\Office\16.0\Wef\`, sondern in
+  **`%LOCALAPPDATA%\Microsoft\Olk\EBWebView\Default\Cache\Cache_Data`** (+ `Code Cache\js|wasm`).
+  Weil `taskpane.js` frueher einen stabilen Namen hatte, servierte WebView2 die alte Version von
+  dort - ein Outlook-Neustart leert diesen Cache NICHT. Zwei Fixes: (a) Sofort-Recovery: olk/
+  olkexthost schliessen (neue-Outlook-Entwuerfe sind server-synchron, Schliessen sicher), dann
+  NUR `Cache\Cache_Data` + `Code Cache\js|wasm` leeren (nicht das ganze EBWebView-Profil - das
+  haelt Cookies/Login), reopen. (b) Dauerhaft: **Content-Hash im Prod-Bundle-Namen**
+  (`output.filename: "[name].[contenthash].js"` in webpack.config.js) -> jede Aenderung ergibt
+  eine neue JS-URL, HtmlWebpackPlugin injiziert sie in die fix benannte `taskpane.html`
+  (Manifest-Ziel, daher kein IT-Re-Rollout). **GOTCHA: Add-in-Cache-Debugging beim neuen Outlook
+  immer im Olk\EBWebView-Cache, nicht im Wef-Ordner. Bundle-Namen gehasht halten.**
+
 - 2026-07-07: **KI-Zusammenfassung als Kommentartitel LIVE (opt-in, nicht-brechend).** Statt
   `Betreff (Datum, von Name)` erzeugt das Add-in beim Anhängen einen Ein-Satz-Zusammenfassung
   der Mail als Todoist-Kommentartitel (von wem/worum/welche Aktion), client-seitig via Claude
