@@ -69,16 +69,16 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 
 - 2026-07-08: **Standardansicht = Todoist-Filter "Heute fällig CMI" statt generisch Heute/Überfällig.**
   Bei leerem Suchfeld zeigt das Task-Pane jetzt "Vorschläge" (mail-relevant, aus ALLEN Tasks) +
-  Sektion "Heute fällig CMI" (die Tasks des gleichnamigen gespeicherten Todoist-Filters). Suche +
-  Vorschläge laufen weiter über ALLE offenen Tasks (getAllTasks). Neue `todoist.ts`-Funktionen:
-  `getFilterByName` (POST `/sync`, `resource_types=["filters"]`, Match per NAME - Filter-Id in der
-  URL ist die alte numerische, Sync liefert ggf. die neue) + `getTasksByFilter` (GET
-  `/tasks/filter?query=`, paginiert, server-seitige Filter-Engine, keine Case-Sensitivity-Falle).
-  Filter-Name als Konstante `FILTER_NAME` in taskpane.ts. Filter-Tasks laden nicht-fatal (parallel);
-  bei "nicht gefunden"/Ladefehler bleibt die Sektion leer + sichtbarer Hinweis (`filterIssue`).
-  **GOTCHA: Es gibt KEINEN `/filters`-REST-Endpoint in v1 - gespeicherte Filter nur via `/sync`
-  (`resource_types=["filters"]`) lesbar. `/tasks/filter` braucht die Query-STRING, nicht die
-  Filter-Id.** 106 Tests. groupTasks/dueTodayOrOverdue in taskLogic.ts jetzt ungenutzt (nur noch getestet).
+  Sektion "Heute fällig CMI". Suche + Vorschläge laufen weiter über ALLE offenen Tasks (getAllTasks).
+  Umsetzung: `getTasksByFilter(token, query)` (GET `/tasks/filter?query=`, paginiert, server-seitige
+  Filter-Engine, keine Case-Sensitivity-Falle) mit der **Query direkt als Konstante** in taskpane.ts:
+  `FILTER_QUERY = "(today | overdue) & #*CMI*"` (Manuels Filter), `FILTER_LABEL` = Sektions-Titel.
+  Filter-Tasks laden nicht-fatal (parallel); bei Ladefehler bleibt die Sektion leer + sichtbarer
+  Hinweis (`filterIssue`). **Verworfen: getFilterByName via `/sync` (resource_types=["filters"]) -
+  der Sync-Call lief zwar, aber der Filter-NAME liess sich nicht matchen (Todoist-Filtername weicht
+  vom URL-Slug `heute-faellig-cmi` ab). Direkte Query ist robuster; wenn Manuel den Filter aendert,
+  FILTER_QUERY anpassen.** GOTCHA: kein `/filters`-REST-Endpoint in v1; `/tasks/filter` braucht die
+  Query-STRING. 102 Tests. groupTasks/dueTodayOrOverdue in taskLogic.ts jetzt ungenutzt (nur getestet).
 
 - 2026-07-07 (2): **"Sehe den Change nicht" = WebView2-Cache des NEUEN Outlook.** Manuel nutzt
   das neue Outlook (`olk.exe` + Add-in-Host `olkexthost.exe`). Dessen Add-in-WebView2-Cache liegt

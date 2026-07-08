@@ -1,4 +1,4 @@
-import { uploadFile, addComment, TodoistError, deleteComment, getProjects, createTask, getAllTasks, isAuthError, getFilterByName, getTasksByFilter } from "../src/lib/todoist";
+import { uploadFile, addComment, TodoistError, deleteComment, getProjects, createTask, getAllTasks, isAuthError, getTasksByFilter } from "../src/lib/todoist";
 
 function mockFetch(status: number, json: unknown) {
   (global as any).fetch = jest.fn().mockResolvedValue({
@@ -117,45 +117,13 @@ describe("getAllTasks maxPages", () => {
   });
 });
 
-describe("getFilterByName", () => {
-  test("POSTet Sync mit resource_types=filters und findet den Filter per Name", async () => {
-    mockFetch(200, { filters: [
-      { id: "1", name: "Andere", query: "today" },
-      { id: "2271650277", name: "Heute fällig CMI", query: "#CMI & (today | overdue)" },
-    ] });
-    const f = await getFilterByName("tok", "Heute fällig CMI");
-    expect(f).toEqual({ id: "2271650277", name: "Heute fällig CMI", query: "#CMI & (today | overdue)" });
-    const [url, opts] = (global as any).fetch.mock.calls[0];
-    expect(url).toBe("https://api.todoist.com/api/v1/sync");
-    expect(opts.method).toBe("POST");
-    expect(opts.headers.Authorization).toBe("Bearer tok");
-    expect(opts.body).toContain("sync_token=*");
-    expect(decodeURIComponent(opts.body)).toContain('resource_types=["filters"]');
-  });
-
-  test("liefert null wenn der Name nicht existiert", async () => {
-    mockFetch(200, { filters: [{ id: "1", name: "Andere", query: "today" }] });
-    expect(await getFilterByName("tok", "Heute fällig CMI")).toBeNull();
-  });
-
-  test("kommt mit fehlender filters-Liste klar", async () => {
-    mockFetch(200, {});
-    expect(await getFilterByName("tok", "X")).toBeNull();
-  });
-
-  test("wirft TodoistError bei 401", async () => {
-    mockFetch(401, { error: "unauthorized" });
-    await expect(getFilterByName("bad", "X")).rejects.toBeInstanceOf(TodoistError);
-  });
-});
-
 describe("getTasksByFilter", () => {
   test("GETet /tasks/filter mit encodeter Query und liefert die Tasks", async () => {
     mockFetch(200, { results: [{ id: "1", content: "A", project_id: "p" }], next_cursor: null });
-    const tasks = await getTasksByFilter("tok", "#CMI & (today | overdue)");
+    const tasks = await getTasksByFilter("tok", "(today | overdue) & #*CMI*");
     expect(tasks.map((t) => t.id)).toEqual(["1"]);
     const [url, opts] = (global as any).fetch.mock.calls[0];
-    expect(url).toBe(`https://api.todoist.com/api/v1/tasks/filter?query=${encodeURIComponent("#CMI & (today | overdue)")}&limit=200`);
+    expect(url).toBe(`https://api.todoist.com/api/v1/tasks/filter?query=${encodeURIComponent("(today | overdue) & #*CMI*")}&limit=200`);
     expect(opts.headers.Authorization).toBe("Bearer tok");
   });
 

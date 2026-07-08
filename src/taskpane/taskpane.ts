@@ -1,13 +1,15 @@
 import { getToken, setToken, getAnthropicKey, setAnthropicKey } from "../lib/settings";
 import { summarizeMail } from "../lib/summarize";
-import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, getFilterByName, getTasksByFilter, TodoistTask } from "../lib/todoist";
+import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, getTasksByFilter, TodoistTask } from "../lib/todoist";
 import { readAndPrepareCurrentMail, prepareMail, attachPreparedToTask, PreparedMail, MAX_BYTES } from "../lib/attachToTask";
 import { MailData } from "../lib/emlBuilder";
 import { priorityColor, taskDeepLink, todayIso, filterTasks, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions, DueChip } from "./taskLogic";
 
-// Standardansicht (leeres Suchfeld) zeigt diesen gespeicherten Todoist-Filter
-// statt der generischen Heute/Ueberfaellig-Logik. Match per Name via Sync.
-const FILTER_NAME = "Heute fällig CMI";
+// Standardansicht (leeres Suchfeld) zeigt diesen Todoist-Filter statt der
+// generischen Heute/Ueberfaellig-Logik. Query direkt (Manuels Filter "Heute fällig
+// CMI"), server-seitig via /tasks/filter ausgewertet. FILTER_LABEL = Sektions-Titel.
+const FILTER_LABEL = "Heute fällig CMI";
+const FILTER_QUERY = "(today | overdue) & #*CMI*";
 
 let busy = false;
 let searchWired = false;
@@ -177,8 +179,8 @@ function renderDefaultView(): void {
   // Filter-Tasks als Hauptliste; bereits als Vorschlag gezeigte nicht doppeln.
   const filterList = cmiFilterTasks.filter((t) => !suggestedIds.has(t.id));
   renderSections(
-    [["Vorschläge", suggestions], [FILTER_NAME, filterList]],
-    `Keine Tasks im Filter "${FILTER_NAME}".`,
+    [["Vorschläge", suggestions], [FILTER_LABEL, filterList]],
+    `Keine Tasks im Filter "${FILTER_LABEL}".`,
   );
 }
 
@@ -284,18 +286,11 @@ async function loadTasks(token: string): Promise<void> {
 // Auth-/Netzfehler bereits, daher hier nur loggen).
 async function loadFilterTasks(token: string): Promise<void> {
   try {
-    const filter = await getFilterByName(token, FILTER_NAME);
-    if (!filter) {
-      cmiFilterTasks = [];
-      filterIssue = `Filter "${FILTER_NAME}" nicht gefunden (Name in Todoist exakt so?).`;
-      console.error(filterIssue);
-      return;
-    }
-    cmiFilterTasks = await getTasksByFilter(token, filter.query);
+    cmiFilterTasks = await getTasksByFilter(token, FILTER_QUERY);
     filterIssue = "";
   } catch (e) {
     cmiFilterTasks = [];
-    filterIssue = `Filter "${FILTER_NAME}" konnte nicht geladen werden: ${(e as Error).message}`;
+    filterIssue = `Filter "${FILTER_LABEL}" konnte nicht geladen werden: ${(e as Error).message}`;
     console.error(filterIssue, e);
   }
 }
