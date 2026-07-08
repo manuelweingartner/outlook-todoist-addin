@@ -90,8 +90,6 @@ function tooLarge(): boolean {
   return !!prepared && prepared.sizeBytes > MAX_BYTES;
 }
 
-function setSkeleton(on: boolean): void { $("skeleton").hidden = !on; }
-
 function makeRow(task: TodoistTask): HTMLLIElement {
   const li = document.createElement("li");
 
@@ -140,7 +138,6 @@ function makeRow(task: TodoistTask): HTMLLIElement {
 }
 
 function renderSections(sections: Array<[string, TodoistTask[]]>, emptyText: string): void {
-  setSkeleton(false);
   const groups = $("task-groups");
   groups.innerHTML = "";
   const empty = $("empty");
@@ -256,7 +253,6 @@ function renderUndo(li: HTMLElement, token: string, commentId: string, state: HT
 
 async function loadTasks(token: string): Promise<void> {
   $("load-error").hidden = true;
-  setSkeleton(true);
   try {
     const [tasks] = await Promise.all([
       getAllTasks(token),
@@ -265,7 +261,6 @@ async function loadTasks(token: string): Promise<void> {
     allTasks = tasks;
     rerender();
   } catch (e) {
-    setSkeleton(false);
     if (isAuthError(e)) {
       setStatus(`Token ungültig: ${(e as Error).message}`, "err", e);
       showTokenSection();
