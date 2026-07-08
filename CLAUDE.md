@@ -67,6 +67,19 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 
 ## Status / Gotchas
 
+- 2026-07-08: **Standardansicht = Todoist-Filter "Heute fällig CMI" statt generisch Heute/Überfällig.**
+  Bei leerem Suchfeld zeigt das Task-Pane jetzt "Vorschläge" (mail-relevant, aus ALLEN Tasks) +
+  Sektion "Heute fällig CMI" (die Tasks des gleichnamigen gespeicherten Todoist-Filters). Suche +
+  Vorschläge laufen weiter über ALLE offenen Tasks (getAllTasks). Neue `todoist.ts`-Funktionen:
+  `getFilterByName` (POST `/sync`, `resource_types=["filters"]`, Match per NAME - Filter-Id in der
+  URL ist die alte numerische, Sync liefert ggf. die neue) + `getTasksByFilter` (GET
+  `/tasks/filter?query=`, paginiert, server-seitige Filter-Engine, keine Case-Sensitivity-Falle).
+  Filter-Name als Konstante `FILTER_NAME` in taskpane.ts. Filter-Tasks laden nicht-fatal (parallel);
+  bei "nicht gefunden"/Ladefehler bleibt die Sektion leer + sichtbarer Hinweis (`filterIssue`).
+  **GOTCHA: Es gibt KEINEN `/filters`-REST-Endpoint in v1 - gespeicherte Filter nur via `/sync`
+  (`resource_types=["filters"]`) lesbar. `/tasks/filter` braucht die Query-STRING, nicht die
+  Filter-Id.** 106 Tests. groupTasks/dueTodayOrOverdue in taskLogic.ts jetzt ungenutzt (nur noch getestet).
+
 - 2026-07-07 (2): **"Sehe den Change nicht" = WebView2-Cache des NEUEN Outlook.** Manuel nutzt
   das neue Outlook (`olk.exe` + Add-in-Host `olkexthost.exe`). Dessen Add-in-WebView2-Cache liegt
   NICHT im klassischen `...\Office\16.0\Wef\`, sondern in
