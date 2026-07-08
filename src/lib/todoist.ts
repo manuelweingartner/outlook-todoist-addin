@@ -120,3 +120,42 @@ export async function createTask(token: string, options: NewTaskOptions): Promis
   });
   return (await ensureOk(res)).json();
 }
+
+export interface TodoistFilter { id: string; name: string; query: string; }
+
+// Liest die gespeicherten Filter des Nutzers via Sync und findet einen per Name.
+// (Es gibt keinen /filters-REST-Endpoint; Sync mit resource_types=["filters"] ist
+// der Weg. Match per Name, weil die Filter-Id in der URL die alte numerische ist,
+// Sync aber ggf. die neue liefert.)
+export async function getFilterByName(token: string, name: string): Promise<TodoistFilter | null> {
+  const body = new URLSearchParams({ sync_token: "*", resource_types: '["filters"]' }).toString();
+  const res = await fetch(`${API}/sync`, {
+    method: "POST",
+    headers: { ...auth(token), "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  const data: { filters?: Array<{ id: string | number; name: string; query: string }> } = await (await ensureOk(res)).json();
+  const f = (data.filters ?? []).find((x) => x.name === name);
+  return f ? { id: String(f.id), name: f.name, query: f.query } : null;
+}
+
+// Liefert die Tasks eines Todoist-Filter-Query (server-seitig ausgewertet, echte
+// Filter-Engine). Paginiert wie getAllTasks.
+export async function getTasksByFilter(token: string, query: string): Promise<TodoistTask[]> {
+  const all: TodoistTask[] = [];
+  let cursor: string | null | undefined;
+  let pages = 0;
+  do {
+    const url = `${API}/tasks/filter?query=${encodeURIComponent(query)}&limit=200${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`;
+    const res = await fetch(url, { headers: auth(token) });
+    const data: Paginated<TodoistTask> | TodoistTask[] = await (await ensureOk(res)).json();
+    all.push(...unwrap(data));
+    cursor = Array.isArray(data) ? null : data.next_cursor;
+    pages++;
+    if (pages >= MAX_PAGES && cursor) {
+      console.error(`getTasksByFilter: Abbruch nach ${MAX_PAGES} Seiten, Liste evtl. unvollstaendig.`);
+      cursor = null;
+    }
+  } while (cursor);
+  return all;
+}

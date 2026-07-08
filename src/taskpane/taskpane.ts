@@ -1,16 +1,22 @@
 import { getToken, setToken, getAnthropicKey, setAnthropicKey } from "../lib/settings";
 import { summarizeMail } from "../lib/summarize";
-import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, TodoistTask } from "../lib/todoist";
+import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, getFilterByName, getTasksByFilter, TodoistTask } from "../lib/todoist";
 import { readAndPrepareCurrentMail, prepareMail, attachPreparedToTask, PreparedMail, MAX_BYTES } from "../lib/attachToTask";
 import { MailData } from "../lib/emlBuilder";
-import { groupTasks, priorityColor, taskDeepLink, todayIso, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions, DueChip } from "./taskLogic";
+import { priorityColor, taskDeepLink, todayIso, filterTasks, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions, DueChip } from "./taskLogic";
+
+// Standardansicht (leeres Suchfeld) zeigt diesen gespeicherten Todoist-Filter
+// statt der generischen Heute/Ueberfaellig-Logik. Match per Name via Sync.
+const FILTER_NAME = "Heute fällig CMI";
 
 let busy = false;
 let searchWired = false;
 let prepared: PreparedMail | null = null;
 let mailData: MailData | null = null;
 let projectNames: Record<string, string> = {};
-let allTasks: TodoistTask[] = [];
+let allTasks: TodoistTask[] = [];      // alle offenen Tasks: Basis fuer Suche + Vorschlaege
+let cmiFilterTasks: TodoistTask[] = []; // Tasks des Filters FILTER_NAME: Standardansicht-Liste
+let filterIssue = "";                    // sichtbarer Grund, falls der Filter nicht geladen werden konnte
 let selectedIndex = 0;
 
 function $(id: string): HTMLElement { return document.getElementById(id)!; }
@@ -168,12 +174,11 @@ function renderDefaultView(): void {
   const kw = extractMailKeywords(prepared?.subject ?? "", prepared?.bodyText ?? "");
   const suggestions = suggestTasks(allTasks, kw);
   const suggestedIds = new Set(suggestions.map((t) => t.id));
-  const today = todayIso(new Date());
-  const base = dueTodayOrOverdue(allTasks, today).filter((t) => !suggestedIds.has(t.id));
-  const { overdue, today: todayList } = groupTasks(base, today);
+  // Filter-Tasks als Hauptliste; bereits als Vorschlag gezeigte nicht doppeln.
+  const filterList = cmiFilterTasks.filter((t) => !suggestedIds.has(t.id));
   renderSections(
-    [["Vorschläge", suggestions], ["Überfällig", overdue], ["Heute", todayList]],
-    "Keine Tasks für heute.",
+    [["Vorschläge", suggestions], [FILTER_NAME, filterList]],
+    `Keine Tasks im Filter "${FILTER_NAME}".`,
   );
 }
 
@@ -257,9 +262,11 @@ async function loadTasks(token: string): Promise<void> {
     const [tasks] = await Promise.all([
       getAllTasks(token),
       loadProjects(token),
+      loadFilterTasks(token), // nicht-fatal: bei Fehler bleibt der Filter leer
     ]);
     allTasks = tasks;
     rerender();
+    if (filterIssue) setStatus(filterIssue, "");
   } catch (e) {
     if (isAuthError(e)) {
       setStatus(`Token ungültig: ${(e as Error).message}`, "err", e);
@@ -269,6 +276,27 @@ async function loadTasks(token: string): Promise<void> {
       $("load-error-text").textContent = `Abruf fehlgeschlagen: ${(e as Error).message}`;
       $("load-error").hidden = false;
     }
+  }
+}
+
+// Laedt die Tasks des gespeicherten Filters FILTER_NAME (Sync -> Query -> /tasks/filter).
+// Nicht fatal: schlaegt es fehl, bleibt die Filter-Sektion leer (getAllTasks traegt die
+// Auth-/Netzfehler bereits, daher hier nur loggen).
+async function loadFilterTasks(token: string): Promise<void> {
+  try {
+    const filter = await getFilterByName(token, FILTER_NAME);
+    if (!filter) {
+      cmiFilterTasks = [];
+      filterIssue = `Filter "${FILTER_NAME}" nicht gefunden (Name in Todoist exakt so?).`;
+      console.error(filterIssue);
+      return;
+    }
+    cmiFilterTasks = await getTasksByFilter(token, filter.query);
+    filterIssue = "";
+  } catch (e) {
+    cmiFilterTasks = [];
+    filterIssue = `Filter "${FILTER_NAME}" konnte nicht geladen werden: ${(e as Error).message}`;
+    console.error(filterIssue, e);
   }
 }
 
