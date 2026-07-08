@@ -84,9 +84,6 @@ ul.task-list li { display: flex; align-items: center; gap: 2px; }
 
 .undo { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 12px; padding: 0; text-decoration: underline; }
 
-#skeleton { display: flex; flex-direction: column; gap: 8px; padding: 8px 0; }
-.skel-row { height: 16px; border-radius: 4px; background: linear-gradient(90deg, var(--bg-soft) 25%, var(--bg-hover) 50%, var(--bg-soft) 75%); background-size: 200% 100%; animation: skel 1.2s infinite; }
-@keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 #new-task-form { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .nt-row { display: flex; align-items: center; gap: 8px; }
