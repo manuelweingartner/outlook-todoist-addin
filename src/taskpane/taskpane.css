@@ -36,6 +36,7 @@ body {
 
 #context-bar { font-size: 12px; color: var(--text-soft); margin: 0 0 10px; padding: 6px 8px; background: var(--bg-soft); border-radius: 6px; }
 #context-bar strong { color: var(--text); }
+#skipped-hint { font-size: 12px; color: var(--text-soft); margin: 0 0 10px; padding: 6px 8px; border: 1px dashed var(--border); border-radius: 6px; }
 #size-warning { font-size: 12px; color: var(--err); margin: 0 0 10px; padding: 6px 8px; border: 1px solid var(--err); border-radius: 6px; }
 
 .lead { margin: 0 0 8px; }
@@ -101,3 +102,9 @@ ul.task-list li { display: flex; align-items: center; gap: 2px; }
 #status { margin-top: 10px; font-size: 13px; min-height: 18px; }
 #status.err { color: var(--err); }
 #status.ok { color: var(--ok); }
+
+/* Outlook mobile: Fingerziele statt Mauszeiger (Apple empfiehlt rund 44 px). */
+body.mobile .task-row { padding: 12px 8px; font-size: 15px; }
+body.mobile .row-open { padding: 12px 10px; font-size: 16px; }
+body.mobile .undo { font-size: 14px; padding: 8px 6px; }
+body.mobile input, body.mobile select { font-size: 16px; } /* unter 16 px zoomt iOS beim Fokus */

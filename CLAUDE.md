@@ -30,17 +30,17 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 - `src/lib/settings.ts` - Token lesen/speichern (roamingSettings): `getToken`/`setToken` (Schlüssel `todoistToken`) + `getAnthropicKey`/`setAnthropicKey` (Schlüssel `anthropicKey`, optional, für die KI-Zusammenfassung; leerer String = aus).
 - `src/lib/summarize.ts` - KI-Zusammenfassung des Mailinhalts als Kommentartitel. `buildSummaryPrompt`/`parseSummary` (rein, testbar) + `summarizeMail(key, mail, bodyText)`: raw `fetch` an `api.anthropic.com/v1/messages`, Modell `claude-haiku-4-5`, Header `anthropic-dangerous-direct-browser-access: true` (CORS für Browser erlaubt, verifiziert `allow-origin: *`). Wirft `SummaryError`; Aufrufer fällt auf den Betreff-Titel zurück.
 - `src/lib/emlBuilder.ts` - `MailData` -> gültiges MIME (.eml). Reine Logik.
-- `src/lib/mailReader.ts` - Office.js-Item -> `MailData` (nur File-Anhänge).
+- `src/lib/mailReader.ts` - Office.js-Item -> `MailData` (nur File-Anhänge). Fehlt `getAttachmentContentAsync` (Outlook mobile), gehen keine Anhänge mit; ihre Namen stehen in `MailData.skippedAttachments` fürs Pane.
 - `src/lib/todoist.ts` - **Unified API v1** (`api.todoist.com/api/v1`): `getAllTasks` (Cursor-Pagination über `/tasks?limit=200`, folgt `next_cursor` bis zum Ende, `MAX_PAGES`-Sicherung gegen Endlosschleifen bei instabilem Cursor, Basis für Client-Suche + Vorschläge), uploadFile (`/uploads`), addComment (`/comments`, gibt Kommentar-id zurück), deleteComment, getProjects, `createTask` (nimmt `NewTaskOptions`: content/project_id/priority/due_date/due_string/due_lang), `isAuthError` (401/403-Erkennung fürs Token-Retry). `TodoistTask` trägt optional `priority`/`due`. (Die frühere serverseitige Suche `getTasks`/`searchTasks`/`tasksByQuery` wurde entfernt, siehe Status 2026-07-06.)
 - `src/lib/attachToTask.ts` - `senderName` (parst "Name <adresse>" fürs Kommentar-Meta), `prepareMail(mail, includeAttachments)` (baut .eml wahlweise mit/ohne Anhänge, liefert sizeBytes/subject/commentText/bodyText), `readAndPrepareCurrentMail` (liest die offene Mail einmal und liefert `MailData` + `PreparedMail` zusammen, Basis für den Text-only-Fallback im Task-Pane), `prepareCurrentMail` (Kompatibilitäts-Wrapper), `attachPreparedToTask` (Vorab-25MB-Check gegen `MAX_BYTES`, upload, Kommentar, gibt id), `formatMailDate` (UTC-stabil). Kommentartext = Betreff (Datum, von Name).
-- `src/taskpane/taskLogic.ts` - Reine Logik: groupTasks (Heute/Überfällig), priorityColor, taskDeepLink, todayIso, filterTasks (case-insensitive Client-Suche, UND-Verknüpfung über Titel + Projektname, `#projekt`-Wörter matchen nur den Projektnamen), dueTodayOrOverdue (repliziert den früheren Server-Filter client-seitig), extractMailKeywords/suggestTasks (Top-3-Vorschläge aus Betreff-/Body-Schlagwörtern der aktuellen Mail), moveSelection (Pfeiltasten-Wrap für die Trefferliste), buildNewTaskOptions (validiert/mappt das Neuer-Task-Formular auf `NewTaskOptions`).
+- `src/taskpane/taskLogic.ts` - Reine Logik: groupTasks (Heute/Überfällig), priorityColor, taskDeepLink (mobil direkter `app.todoist.com`-Link statt `open-task.html`), isMobileHost (`OutlookIOS`/`OutlookAndroid`), todayIso, filterTasks (case-insensitive Client-Suche, UND-Verknüpfung über Titel + Projektname, `#projekt`-Wörter matchen nur den Projektnamen), dueTodayOrOverdue (repliziert den früheren Server-Filter client-seitig), extractMailKeywords/suggestTasks (Top-3-Vorschläge aus Betreff-/Body-Schlagwörtern der aktuellen Mail), moveSelection (Pfeiltasten-Wrap für die Trefferliste), buildNewTaskOptions (validiert/mappt das Neuer-Task-Formular auf `NewTaskOptions`).
 - `src/taskpane/taskpane.{html,ts,css}` - UI im Todoist-Look (rot `#e44332`, Dark-Mode via prefers-color-scheme, self-contained CSS, kein Fluent-CDN). 4 Zustände (Onboarding/Liste/Leer/Inline-Anhängen; **Lade-Skeleton 2026-07-08 entfernt** - wirkte wie Dauer-Suche, Laden ist schnell genug). Features: Ein-Klick-Anhängen mit Inline-Haken + Rückgängig, Mail-Kontext-Kopf, Vorab-Grössenwarnung, Tastatur-Flow (Enter hängt obersten Treffer an, Pfeiltasten navigieren die Trefferliste), Projektnamen, In-Todoist-öffnen, Neuen-Task-aus-Mail-Formular (Titel/Projekt/Priorität/Fälligkeit), **Standardansicht = Vorschläge + Todoist-Filter "Heute fällig CMI"** (statt generisch Heute/Überfällig) + Client-Suche über ALLE Tasks (case-insensitiv, `#projekt`-Syntax), ⚙-Einstellungen-Button (Token + Anthropic-Key), Retry-Banner bei fehlgeschlagenem Task-Load, Text-only-Anhängen-Button in der Grössenwarnung (Mail ohne Anhänge trotzdem anhängen, wenn die Vollversion über 25 MB liegt). Trefferzeile zweizeilig: Titel als prominente Hauptzeile (`.task-main`), Projekt als kleine Unterzeile.
 - `src/open-task.html` - Statische Umleitungsseite (per Webpack-Copy ins dist-Root): läuft im System-Browser und löst dort das Desktop-Protokoll aus. Nötig, weil die Outlook-Webview Custom-Protokolle blockt. **Aktueller Stand (nach der Deeplink-Saga vom 2026-07-06, siehe Status):** feuert `todoist://navigate-to?url=https://app.todoist.com/app/task/<neue-id>` (NICHT `todoist://task?id=` -> das triggert die "Link aktualisieren"-Warnung), ruft KEIN `window.close()` auf (das kappte Chromes Erlaubnis-Dialog) und zeigt einen prominenten Klick-Button "Task in Todoist öffnen" (Nutzergeste öffnet zuverlässig) plus Web-App-Fallback-Link.
 - `manifest.xml` (Dev, localhost:3000) / `manifest.prod.xml` (Prod, Pages-URL). **Redesign änderte das Manifest NICHT -> kein IT-Rollout nötig, Self-Deploy genügt.**
 
 ## Befehle
 
-- Tests: `npx jest` (85 Tests, ts-jest 29, jsdom).
+- Tests: `npx jest` (108 Tests, ts-jest 29, jsdom).
 - Build: `npm run build` (Production-Webpack -> `dist/`).
 - Manifest prüfen: `npx office-addin-manifest validate manifest.prod.xml`.
 - **Deploy: `npm run deploy`** (baut + setzt `.nojekyll` + published `dist/` nach `gh-pages` via gh-pages-Tool).
@@ -67,6 +67,20 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
 
 ## Status / Gotchas
 
+- 2026-11-02: **Outlook mobile (iPhone/Android) eingebaut, Manifest 1.1.0.0. Braucht IT-Re-Rollout.**
+  Manifest: `VersionOverridesV1_1` in V1_0 geschachtelt, darin Desktop wie bisher plus
+  `MobileFormFactor` mit `MobileMessageReadCommandSurface` (MobileButton, Icons 25/32/48 je
+  Scale 1 bis 3, neue `assets/icon-25.png` und `icon-48.png`). Mindestversion von Mailbox 1.8
+  auf **1.5** gesenkt, weil Outlook mobile offiziell nur bis 1.5 geht (Doku: einzelne neuere
+  APIs laufen mobil, `getAttachmentContentAsync` steht NICHT auf der Liste). Desktop nutzt
+  1.8-APIs weiter per Feature-Check. Folgen mobil: .eml ohne Anhänge plus Hinweis
+  «Auf dem Handy ohne Anhänge (n): …», direkter Todoist-Web-Link (Universal Link),
+  Knopf «Fertig» (`Office.context.ui.closeContainer`), kein Autofokus aufs Suchfeld,
+  grössere Fingerziele (`body.mobile`). Erkennung über
+  `Office.context.mailbox.diagnostics.hostName`. **Noch nicht auf einem iPhone getestet**
+  (geht erst nach dem IT-Update): Universal Link aus dem Pane, `closeContainer`,
+  `roamingSettings`-Token auf dem Handy. Manifest mit `office-addin-manifest validate`
+  geprüft, 108 Tests grün, Build clean.
 - 2026-07-08: **Lade-Skeleton entfernt.** Die animierte Skeleton (#skeleton/.skel-row, Endlos-Shimmer)
   blitzte bei jedem Öffnen unter dem Suchfeld auf und las sich wie Dauer-Suche - raus (HTML +
   setSkeleton-Logik + CSS). Retry-Banner/-Button bleibt (nur bei echtem Ladefehler sichtbar, fängt

@@ -3,7 +3,7 @@ import { summarizeMail } from "../lib/summarize";
 import { getAllTasks, getProjects, createTask, deleteComment, isAuthError, getTasksByFilter, TodoistTask } from "../lib/todoist";
 import { readAndPrepareCurrentMail, prepareMail, attachPreparedToTask, PreparedMail, MAX_BYTES } from "../lib/attachToTask";
 import { MailData } from "../lib/emlBuilder";
-import { priorityColor, taskDeepLink, todayIso, filterTasks, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions, DueChip } from "./taskLogic";
+import { priorityColor, taskDeepLink, isMobileHost, todayIso, filterTasks, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions, DueChip } from "./taskLogic";
 
 // Standardansicht (leeres Suchfeld) zeigt diesen Todoist-Filter statt der
 // generischen Heute/Ueberfaellig-Logik. Query direkt (Manuels Filter "Heute fällig
@@ -20,6 +20,7 @@ let allTasks: TodoistTask[] = [];      // alle offenen Tasks: Basis fuer Suche +
 let cmiFilterTasks: TodoistTask[] = []; // Tasks des Filters FILTER_NAME: Standardansicht-Liste
 let filterIssue = "";                    // sichtbarer Grund, falls der Filter nicht geladen werden konnte
 let selectedIndex = 0;
+let mobile = false; // Outlook auf iOS/Android, gesetzt in Office.onReady
 
 function $(id: string): HTMLElement { return document.getElementById(id)!; }
 
@@ -28,7 +29,7 @@ function openExternal(url: string): void {
 }
 
 function openInTodoist(taskId: string): void {
-  openExternal(taskDeepLink(taskId));
+  openExternal(taskDeepLink(taskId, mobile));
 }
 
 function visibleRows(): HTMLButtonElement[] {
@@ -56,6 +57,16 @@ function renderContextBar(): void {
   if (!prepared) return;
   $("context-subject").textContent = prepared.subject || "(kein Betreff)";
   $("context-bar").hidden = false;
+}
+
+// Outlook mobile kann Anhaenge nicht lesen: offen sagen, was im .eml fehlt.
+function renderSkippedHint(): void {
+  const hint = $("skipped-hint");
+  const names = mailData?.skippedAttachments ?? [];
+  hint.textContent = names.length
+    ? `Auf dem Handy ohne Anhänge (${names.length}): ${names.join(", ")}`
+    : "";
+  hint.hidden = names.length === 0;
 }
 
 function renderSizeWarning(): void {
@@ -256,6 +267,15 @@ function renderUndo(li: HTMLElement, token: string, commentId: string, state: HT
   openLink.textContent = "In Todoist öffnen";
   openLink.onclick = () => openInTodoist(taskId);
   li.appendChild(openLink);
+  // Mobil fuellt das Pane den ganzen Bildschirm: Schliessen per Knopf statt Suchen nach dem X.
+  const ui: any = Office.context.ui;
+  if (mobile && ui && typeof ui.closeContainer === "function") {
+    const done = document.createElement("button");
+    done.className = "undo";
+    done.textContent = "Fertig";
+    done.onclick = () => ui.closeContainer();
+    li.appendChild(done);
+  }
 }
 
 async function loadTasks(token: string): Promise<void> {
@@ -443,13 +463,15 @@ async function start(): Promise<void> {
     mailData = mail;
     prepared = p;
     renderContextBar();
+    renderSkippedHint();
     renderSizeWarning();
   } catch (e) {
     setStatus(`Mail konnte nicht gelesen werden: ${(e as Error).message}`, "err", e);
   }
 
   if (!searchWired) { wireSearch(); wireNewTask(); wireRetry(); searchWired = true; }
-  ($("search") as HTMLInputElement).focus();
+  // Mobil wuerde der Fokus sofort die Tastatur ueber die Vorschlaege legen.
+  if (!mobile) ($("search") as HTMLInputElement).focus();
   await loadTasks(token);
 }
 
@@ -460,6 +482,8 @@ function showSettings(): void {
 }
 
 Office.onReady(() => {
+  mobile = isMobileHost(Office.context.mailbox?.diagnostics?.hostName);
+  document.body.classList.toggle("mobile", mobile);
   ($("token-save") as HTMLButtonElement).onclick = async () => {
     const val = ($("token-input") as HTMLInputElement).value.trim();
     if (!val) { setStatus("Bitte Todoist-Token eingeben.", "err"); return; }

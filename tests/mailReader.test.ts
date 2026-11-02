@@ -61,3 +61,31 @@ test("Anhang-Lesefehler wird geloggt und uebersprungen, Rest bleibt", async () =
   expect(errSpy).toHaveBeenCalled();
   errSpy.mockRestore();
 });
+
+test("ohne getAttachmentContentAsync (Outlook mobile): Mail ohne Anhaenge, Namen als uebersprungen gemeldet", async () => {
+  const O = (global as any).Office;
+  const errSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+  (global as any).Office.context.mailbox = {
+    item: {
+      subject: "S", from: { emailAddress: "a@x.ch" }, to: [], cc: [],
+      dateTimeCreated: new Date("2026-01-01T10:00:00Z"),
+      body: { getAsync: (_t: string, cb: (r: any) => void) => cb({ status: O.AsyncResultStatus.Succeeded, value: "<p>x</p>" }) },
+      attachments: [
+        { id: "1", name: "a.pdf", contentType: "application/pdf", attachmentType: "file" },
+        { id: "2", name: "inline.png", contentType: "image/png", attachmentType: "item" },
+      ],
+    },
+  };
+  const mail = await readCurrentMail();
+  expect(mail.htmlBody).toBe("<p>x</p>");
+  expect(mail.attachments).toEqual([]);
+  expect(mail.skippedAttachments).toEqual(["a.pdf"]);
+  expect(errSpy).not.toHaveBeenCalled();
+  errSpy.mockRestore();
+});
+
+test("mit getAttachmentContentAsync: keine uebersprungenen Anhaenge", async () => {
+  mockItem();
+  const mail = await readCurrentMail();
+  expect(mail.skippedAttachments).toEqual([]);
+});

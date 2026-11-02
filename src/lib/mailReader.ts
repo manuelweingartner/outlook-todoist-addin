@@ -30,7 +30,11 @@ export async function readCurrentMail(): Promise<MailData> {
   const fileAtts = (item.attachments || []).filter(
     (a: any) => a.attachmentType === Office.MailboxEnums.AttachmentType.File,
   );
-  for (const a of fileAtts) {
+  // Outlook mobile (iOS/Android) unterstuetzt Mailbox 1.8 nicht, getAttachmentContentAsync
+  // fehlt dort. Dann geht die Mail ohne Anhaenge, die Namen meldet das Pane als Hinweis.
+  const canRead = typeof item.getAttachmentContentAsync === "function";
+  const skippedAttachments: string[] = canRead ? [] : fileAtts.map((a: any) => a.name);
+  for (const a of canRead ? fileAtts : []) {
     try {
       const base64 = await getAttachmentBase64(item, a.id);
       if (base64) attachments.push({ name: a.name, contentType: a.contentType, base64 });
@@ -48,5 +52,6 @@ export async function readCurrentMail(): Promise<MailData> {
     date: (item.dateTimeCreated ? new Date(item.dateTimeCreated) : new Date()).toUTCString(),
     htmlBody,
     attachments,
+    skippedAttachments,
   };
 }

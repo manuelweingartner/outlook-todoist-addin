@@ -7,6 +7,9 @@ export interface MailData {
   date: string;
   htmlBody: string;
   attachments: MailAttachment[];
+  // Datei-Anhaenge, die der Client nicht lesen kann (Outlook mobile kennt
+  // getAttachmentContentAsync nicht). Nur fuer den Hinweis im Pane, nicht im .eml.
+  skippedAttachments?: string[];
 }
 
 const CRLF = "\r\n";

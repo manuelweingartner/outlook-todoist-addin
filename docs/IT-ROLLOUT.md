@@ -1,5 +1,17 @@
 # IT-Rollout: Add-in "Mail an Todoist"
 
+## Update 1.1.0.0 (November 2026): Outlook auf iPhone und Android
+
+Das Manifest hat sich geändert (Version 1.0.0.0 -> 1.1.0.0). Bitte im M365 Admin-Center
+unter Einstellungen > Integrierte Apps > "Mail an Todoist" die App aktualisieren bzw. das
+neue Manifest von der gleichen URL hochladen. Neu:
+
+- Mobile-Teil (`MobileFormFactor`), damit der Button auch in Outlook für iOS und Android
+  erscheint (nur beim Lesen einer Mail).
+- Mindest-API von Mailbox 1.8 auf 1.5 gesenkt (Outlook mobile unterstützt offiziell 1.5).
+- **Berechtigungen unverändert:** weiterhin nur `ReadItem`, kein Graph, kein Consent.
+- Zuweisung unverändert. Bis der Button auf den Geräten erscheint, kann es bis zu 24 h dauern.
+
 ## Anfrage
 
 Bitte das Add-in "Mail an Todoist" zentral bereitstellen über:
@@ -54,5 +66,5 @@ Bitte das Add-in zuweisen an:
 ## Technische Details
 
 - Hosting: GitHub Pages (statische Dateien, kein Server).
-- Manifest-Requirement: Mailbox API 1.8 (unterstützt in Outlook 2019, M365).
-- Kompatibilität: Outlook im Web, Outlook für Windows/Mac (modern).
+- Manifest-Requirement: Mailbox API 1.5 (ab Version 1.1.0.0; Anhänge nutzen auf Desktop/Web 1.8 per Feature-Check).
+- Kompatibilität: Outlook im Web, Outlook für Windows/Mac (modern), Outlook für iOS und Android (ab 1.1.0.0, dort ohne Anhänge).

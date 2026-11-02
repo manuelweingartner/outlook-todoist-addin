@@ -35,8 +35,16 @@ export function priorityColor(priority?: number): string {
 // Die Id ist die neue alphanumerische v1-Id; genau die oeffnet todoist://task?id=
 // die korrekte Task (verifiziert). KEINE Uebersetzung auf die alte numerische Id -
 // die lehnt der Desktop-Client ab.
-export function taskDeepLink(id: string): string {
+// Desktop: Umleitungsseite, die im System-Browser das todoist://-Protokoll ausloest.
+// Mobil: direkter Web-Link, iOS/Android oeffnen ihn als Universal Link in der Todoist-App.
+export function taskDeepLink(id: string, mobile = false): string {
+  if (mobile) return `https://app.todoist.com/app/task/${encodeURIComponent(id)}`;
   return `open-task.html?id=${encodeURIComponent(id)}`;
+}
+
+// Office.context.mailbox.diagnostics.hostName liefert in Outlook mobile "OutlookIOS" bzw. "OutlookAndroid".
+export function isMobileHost(hostName: string | undefined): boolean {
+  return hostName === "OutlookIOS" || hostName === "OutlookAndroid";
 }
 
 // Client-seitige Suche: case-insensitiv, alle Woerter muessen matchen (UND).

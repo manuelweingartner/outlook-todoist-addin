@@ -1,4 +1,4 @@
-import { todayIso, groupTasks, priorityColor, taskDeepLink, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions } from "../src/taskpane/taskLogic";
+import { todayIso, groupTasks, priorityColor, taskDeepLink, isMobileHost, filterTasks, dueTodayOrOverdue, extractMailKeywords, suggestTasks, moveSelection, buildNewTaskOptions } from "../src/taskpane/taskLogic";
 import { TodoistTask } from "../src/lib/todoist";
 
 const t = (id: string, due: string | null, priority = 1): TodoistTask => ({
@@ -39,6 +39,24 @@ describe("taskDeepLink", () => {
   });
   test("nutzt die neue alphanumerische Id direkt (keine Uebersetzung)", () => {
     expect(taskDeepLink("6h2H3m29cPCqMR3X")).toBe("open-task.html?id=6h2H3m29cPCqMR3X");
+  });
+  test("mobil: direkter Web-Link (Universal Link oeffnet die Todoist-App)", () => {
+    expect(taskDeepLink("6h2H3m29cPCqMR3X", true)).toBe("https://app.todoist.com/app/task/6h2H3m29cPCqMR3X");
+  });
+  test("mobil: Id wird URL-kodiert", () => {
+    expect(taskDeepLink("a/b", true)).toBe("https://app.todoist.com/app/task/a%2Fb");
+  });
+});
+
+describe("isMobileHost", () => {
+  test("erkennt Outlook auf iOS und Android", () => {
+    expect(isMobileHost("OutlookIOS")).toBe(true);
+    expect(isMobileHost("OutlookAndroid")).toBe(true);
+  });
+  test("Desktop, Web und unbekannt sind nicht mobil", () => {
+    expect(isMobileHost("Outlook")).toBe(false);
+    expect(isMobileHost("OutlookWebApp")).toBe(false);
+    expect(isMobileHost(undefined)).toBe(false);
   });
 });
 
