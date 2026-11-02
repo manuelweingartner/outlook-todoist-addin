@@ -80,7 +80,10 @@ anklicken > .eml hängt als Kommentar-Anhang am Task.
   `Office.context.mailbox.diagnostics.hostName`. **Noch nicht auf einem iPhone getestet**
   (geht erst nach dem IT-Update): Universal Link aus dem Pane, `closeContainer`,
   `roamingSettings`-Token auf dem Handy. Manifest mit `office-addin-manifest validate`
-  geprüft, 108 Tests grün, Build clean.
+  geprüft, 108 Tests grün, Build clean. **Am 02.11.2026 deployt** (Pages liefert 1.1.0.0) und
+  Update-Mail an interneit@cmi.ch (Cc Denoshan, Folge zu Zendesk-Ticket #140204) verschickt.
+  Der Mailweg an interneit@ erzeugt automatisch ein Zendesk-Ticket, ein separates Ticket braucht es nicht.
+  iPhone-Test steht als Todoist-Aufgabe am 09.11.2026 (CMI - Admin & Laufbahn, @warten).
 - 2026-07-08: **Lade-Skeleton entfernt.** Die animierte Skeleton (#skeleton/.skel-row, Endlos-Shimmer)
   blitzte bei jedem Öffnen unter dem Suchfeld auf und las sich wie Dauer-Suche - raus (HTML +
   setSkeleton-Logik + CSS). Retry-Banner/-Button bleibt (nur bei echtem Ladefehler sichtbar, fängt
